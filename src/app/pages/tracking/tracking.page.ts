@@ -22,9 +22,10 @@ import { Component, OnInit, OnDestroy, ViewChild, ElementRef, signal, computed }
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { 
-  IonContent, IonHeader, IonTitle, IonToolbar, IonButton, IonIcon, IonBadge,
- IonSpinner, IonToast,
-  IonChip, IonLabel, AlertController, ToastController
+  IonContent, IonHeader, IonTitle, IonToolbar, IonButton, IonIcon,
+  IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonBadge,
+  IonFab, IonFabButton, IonFabList, IonSpinner, IonAlert, IonToast,
+  IonActionSheet, IonChip, IonLabel, AlertController, ToastController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { 
@@ -48,9 +49,8 @@ declare var google: any;
   imports: [
     CommonModule, FormsModule,
     IonContent, IonHeader, IonTitle, IonToolbar, IonButton, IonIcon,
-        IonBadge,
-       IonSpinner,  IonToast,
-     IonChip, IonLabel
+     IonBadge,
+     IonSpinner, IonToast, IonChip, IonLabel
   ],
   template: `
     <!-- ============================================================

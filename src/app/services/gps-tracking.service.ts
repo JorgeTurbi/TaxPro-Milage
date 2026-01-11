@@ -1,21 +1,15 @@
 /**
- * TaxPro Mileage - Servicio de GPS y Tracking
- * =============================================
- * Este servicio maneja toda la lógica de tracking GPS:
- * - Obtención de ubicación en tiempo real
- * - Cálculo de distancia recorrida
- * - Detección automática de parada del vehículo
- * - Almacenamiento temporal de rutas
- * - Sincronización con el servidor
- * 
- * IMPORTANTE: Este es el servicio más crítico de la aplicación.
+ * TaxPro Mileage - Servicio de GPS y Tracking MEJORADO
+ * =====================================================
+ * Compatible con cualquier versión de environment.ts
  */
 
 import { Injectable, inject, NgZone } from '@angular/core';
 import { BehaviorSubject, Observable, Subject, interval, Subscription } from 'rxjs';
-import { takeUntil, filter } from 'rxjs/operators';
-import { Geolocation, Position, WatchPositionCallback } from '@capacitor/geolocation';
+import { takeUntil } from 'rxjs/operators';
+import { Geolocation, Position } from '@capacitor/geolocation';
 import { Preferences } from '@capacitor/preferences';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 import { environment } from '../../environments/environment';
 import { 
@@ -23,10 +17,22 @@ import {
   TrackingState, 
   Trip, 
   TripPurpose,
-  CreateTripData,
   FinishTripData 
 } from '../models/interfaces';
 import { TripService } from './trip.service';
+
+// Configuración por defecto (usada si no está en environment)
+const DEFAULT_GPS_CONFIG = {
+  updateInterval: 5000,
+  minimumAccuracy: 50,
+  minimumSpeedForDriving: 2.2,
+  drivingDetectionSpeed: 4.2,
+  stopTrackingTimeout: 300000,
+  minimumStopTime: 120000,
+  minimumDistance: 10,
+  enableDrivingDetection: true,
+  drivingDetectionTime: 30000,
+};
 
 @Injectable({
   providedIn: 'root'
@@ -34,6 +40,12 @@ import { TripService } from './trip.service';
 export class GpsTrackingService {
   private tripService = inject(TripService);
   private ngZone = inject(NgZone);
+
+  // Configuración combinada (environment + defaults)
+  private readonly config = {
+    ...DEFAULT_GPS_CONFIG,
+    ...environment.gpsConfig
+  };
 
   // Estado del tracking
   private trackingStateSubject = new BehaviorSubject<TrackingState>({
@@ -45,6 +57,10 @@ export class GpsTrackingService {
     currentSpeed: 0
   });
   public trackingState$ = this.trackingStateSubject.asObservable();
+
+  // Detección de conducción
+  private drivingDetectionSubject = new BehaviorSubject<boolean>(false);
+  public drivingDetected$ = this.drivingDetectionSubject.asObservable();
 
   // ID del watcher de posición
   private watchId: string | null = null;
@@ -58,15 +74,162 @@ export class GpsTrackingService {
   // Timestamp de la última posición con movimiento
   private lastMovementTime: number = 0;
   
-  // Timeout para detección automática de parada
+  // Tiempo que lleva detenido
+  private stoppedSince: number = 0;
+  
+  // Flag para indicar si está temporalmente detenido
+  private isTemporarilyStopped: boolean = false;
+  
+  // Timeout para auto-stop
   private autoStopTimeout: ReturnType<typeof setTimeout> | null = null;
+  
+  // Watcher para detección de conducción
+  private drivingDetectionWatchId: string | null = null;
+  private drivingStartTime: number = 0;
+  private consecutiveDrivingPoints: number = 0;
 
-  // Configuración
-  private readonly config = environment.gpsConfig;
+  // Configuración de auto-stop (puede ser modificada por el usuario)
+  private autoStopMinutes: number = 5;
 
   constructor() {
-    // Restaurar estado si había un tracking en curso
     this.restoreTrackingState();
+    this.loadAutoStopSetting();
+  }
+
+  /**
+   * Carga la configuración de auto-stop del usuario
+   */
+  private async loadAutoStopSetting(): Promise<void> {
+    try {
+      const { value } = await Preferences.get({ key: 'autoStopMinutes' });
+      if (value) {
+        this.autoStopMinutes = parseInt(value, 10);
+      }
+    } catch (error) {
+      console.error('Error cargando configuración de auto-stop:', error);
+    }
+  }
+
+  /**
+   * Establece el tiempo de auto-stop en minutos
+   */
+  async setAutoStopMinutes(minutes: number): Promise<void> {
+    this.autoStopMinutes = minutes;
+    await Preferences.set({ 
+      key: 'autoStopMinutes', 
+      value: minutes.toString() 
+    });
+  }
+
+  /**
+   * Obtiene el tiempo de auto-stop actual
+   */
+  getAutoStopMinutes(): number {
+    return this.autoStopMinutes;
+  }
+
+  // ===========================================
+  // DETECCIÓN AUTOMÁTICA DE CONDUCCIÓN
+  // ===========================================
+
+  /**
+   * Inicia la detección de conducción en segundo plano
+   */
+  async startDrivingDetection(): Promise<void> {
+    if (this.drivingDetectionWatchId) return;
+    if (!this.config.enableDrivingDetection) return;
+    
+    console.log('🚗 Iniciando detección de conducción...');
+
+    try {
+      await this.checkAndRequestPermissions();
+
+      this.drivingDetectionWatchId = await Geolocation.watchPosition(
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 5000
+        },
+        (position, err) => {
+          if (err) {
+            console.error('Error en detección de conducción:', err);
+            return;
+          }
+
+          if (position) {
+            this.ngZone.run(() => {
+              this.checkIfDriving(position);
+            });
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Error iniciando detección de conducción:', error);
+    }
+  }
+
+  /**
+   * Detiene la detección de conducción
+   */
+  async stopDrivingDetection(): Promise<void> {
+    if (this.drivingDetectionWatchId) {
+      await Geolocation.clearWatch({ id: this.drivingDetectionWatchId });
+      this.drivingDetectionWatchId = null;
+      this.drivingDetectionSubject.next(false);
+      this.consecutiveDrivingPoints = 0;
+      console.log('🛑 Detección de conducción detenida');
+    }
+  }
+
+  /**
+   * Verifica si el usuario está conduciendo
+   */
+  private checkIfDriving(position: Position): void {
+    const speed = position.coords.speed || 0;
+    const drivingThreshold = this.config.drivingDetectionSpeed;
+
+    if (speed >= drivingThreshold) {
+      this.consecutiveDrivingPoints++;
+      
+      if (this.consecutiveDrivingPoints === 1) {
+        this.drivingStartTime = Date.now();
+      }
+
+      const drivingTime = Date.now() - this.drivingStartTime;
+      const detectionTime = this.config.drivingDetectionTime;
+
+      if (drivingTime >= detectionTime && !this.drivingDetectionSubject.value) {
+        console.log('🚗 ¡Conducción detectada!');
+        this.drivingDetectionSubject.next(true);
+        this.sendDrivingNotification();
+      }
+    } else {
+      this.consecutiveDrivingPoints = 0;
+      this.drivingStartTime = 0;
+      
+      if (this.drivingDetectionSubject.value) {
+        this.drivingDetectionSubject.next(false);
+      }
+    }
+  }
+
+  /**
+   * Envía notificación de conducción detectada
+   */
+  private async sendDrivingNotification(): Promise<void> {
+    try {
+      await LocalNotifications.schedule({
+        notifications: [{
+          title: '🚗 ¿Iniciar tracking?',
+          body: 'Parece que estás conduciendo. ¿Quieres registrar este viaje?',
+          id: 1,
+          actionTypeId: 'DRIVING_DETECTED',
+          extra: { action: 'start_tracking' }
+        }]
+      });
+    } catch (error) {
+      console.log('Notificaciones no disponibles:', error);
+    }
   }
 
   // ===========================================
@@ -75,16 +238,15 @@ export class GpsTrackingService {
 
   /**
    * Inicia el tracking de un nuevo recorrido
-   * @param purpose Propósito del viaje (business, personal, etc.)
    */
   async startTracking(purpose: TripPurpose = 'business'): Promise<void> {
     console.log('🚗 Iniciando tracking GPS...');
 
     try {
-      // Verificar y solicitar permisos
       await this.checkAndRequestPermissions();
+      
+      await this.stopDrivingDetection();
 
-      // Obtener posición inicial
       const initialPosition = await this.getCurrentPosition();
       
       if (!initialPosition) {
@@ -101,7 +263,6 @@ export class GpsTrackingService {
         timestamp: initialPosition.timestamp
       };
 
-      // Crear el estado inicial del tracking
       const newState: TrackingState = {
         isTracking: true,
         isPaused: false,
@@ -110,20 +271,17 @@ export class GpsTrackingService {
         startTime: Date.now(),
         elapsedTime: 0,
         currentDistance: 0,
-        currentSpeed: 0,
+        currentSpeed: (initialPosition.coords.speed || 0) * 2.237,
         lastUpdate: Date.now()
       };
 
       this.trackingStateSubject.next(newState);
       this.lastMovementTime = Date.now();
+      this.stoppedSince = 0;
+      this.isTemporarilyStopped = false;
 
-      // Iniciar el watcher de posición
       await this.startPositionWatcher();
-
-      // Iniciar el timer
       this.startTimer();
-
-      // Guardar estado temporal
       await this.saveTrackingState();
 
       console.log('✅ Tracking iniciado desde:', startPoint);
@@ -135,7 +293,7 @@ export class GpsTrackingService {
   }
 
   /**
-   * Pausa el tracking actual
+   * Pausa el tracking actual (manual)
    */
   pauseTracking(): void {
     const currentState = this.trackingStateSubject.value;
@@ -151,11 +309,9 @@ export class GpsTrackingService {
       isPaused: true
     });
 
-    // Detener el watcher temporalmente
     this.stopPositionWatcher();
-    
-    // Detener el timer
     this.stopTimer();
+    this.clearAutoStopTimeout();
   }
 
   /**
@@ -175,18 +331,16 @@ export class GpsTrackingService {
       isPaused: false
     });
 
-    // Reiniciar el watcher
     await this.startPositionWatcher();
-    
-    // Reiniciar el timer
     this.startTimer();
     
     this.lastMovementTime = Date.now();
+    this.stoppedSince = 0;
+    this.isTemporarilyStopped = false;
   }
 
   /**
    * Detiene el tracking y finaliza el recorrido
-   * @param autoStopped Si fue detenido automáticamente
    */
   async stopTracking(autoStopped: boolean = false): Promise<Trip | null> {
     const currentState = this.trackingStateSubject.value;
@@ -197,16 +351,12 @@ export class GpsTrackingService {
 
     console.log(autoStopped ? '🛑 Deteniendo tracking automáticamente...' : '🛑 Deteniendo tracking...');
 
-    // Detener watchers y timers
     this.stopPositionWatcher();
     this.stopTimer();
     this.clearAutoStopTimeout();
-
-    // Emitir señal de parada
     this.stopTracking$.next();
 
     try {
-      // Obtener posición final
       const finalPosition = await this.getCurrentPosition();
       
       let endPoint: GpsPoint;
@@ -222,11 +372,9 @@ export class GpsTrackingService {
           timestamp: finalPosition.timestamp
         };
       } else {
-        // Usar la última posición conocida
         endPoint = currentState.routePoints[currentState.routePoints.length - 1];
       }
 
-      // Preparar datos del viaje para enviar a la API
       const tripData: FinishTripData = {
         tripId: currentState.currentTrip?.id || this.generateTripId(),
         endLocation: endPoint,
@@ -238,12 +386,14 @@ export class GpsTrackingService {
         maxSpeedMph: this.calculateMaxSpeed(currentState.routePoints)
       };
 
-      // Enviar a la API
       const savedTrip = await this.tripService.finishTrip(tripData).toPromise();
 
-      // Limpiar estado
       this.resetTrackingState();
       await this.clearSavedTrackingState();
+
+      if (this.config.enableDrivingDetection) {
+        this.startDrivingDetection();
+      }
 
       console.log('✅ Tracking finalizado. Distancia:', tripData.distanceMiles.toFixed(2), 'millas');
 
@@ -251,13 +401,8 @@ export class GpsTrackingService {
 
     } catch (error) {
       console.error('❌ Error finalizando tracking:', error);
-      
-      // Guardar localmente para sincronizar después
       await this.saveTrackingForLaterSync(currentState);
-      
-      // Limpiar estado de todas formas
       this.resetTrackingState();
-      
       throw error;
     }
   }
@@ -274,15 +419,16 @@ export class GpsTrackingService {
     this.stopTracking$.next();
     this.resetTrackingState();
     await this.clearSavedTrackingState();
+
+    if (this.config.enableDrivingDetection) {
+      this.startDrivingDetection();
+    }
   }
 
   // ===========================================
   // WATCHER DE POSICIÓN GPS
   // ===========================================
 
-  /**
-   * Inicia el watcher que escucha cambios de posición
-   */
   private async startPositionWatcher(): Promise<void> {
     console.log('📍 Iniciando watcher de posición...');
 
@@ -294,40 +440,35 @@ export class GpsTrackingService {
 
     try {
       this.watchId = await Geolocation.watchPosition(options, (position, err) => {
-        // Ejecutar dentro de la zona de Angular para detectar cambios
-        this.ngZone.run(() => {
-          if (err) {
-            console.error('❌ Error en watcher GPS:', err);
-            return;
-          }
+        if (err) {
+          console.error('Error obteniendo posición:', err);
+          return;
+        }
 
-          if (position) {
+        if (position) {
+          this.ngZone.run(() => {
             this.handlePositionUpdate(position);
-          }
-        });
+          });
+        }
       });
 
-      console.log('✅ Watcher iniciado con ID:', this.watchId);
-
+      console.log('✅ Watcher de posición iniciado con ID:', this.watchId);
     } catch (error) {
       console.error('❌ Error iniciando watcher:', error);
       throw error;
     }
   }
 
-  /**
-   * Detiene el watcher de posición
-   */
   private async stopPositionWatcher(): Promise<void> {
     if (this.watchId) {
       await Geolocation.clearWatch({ id: this.watchId });
       this.watchId = null;
-      console.log('✅ Watcher detenido');
+      console.log('🛑 Watcher de posición detenido');
     }
   }
 
   /**
-   * Maneja cada actualización de posición
+   * Procesa una actualización de posición
    */
   private handlePositionUpdate(position: Position): void {
     const currentState = this.trackingStateSubject.value;
@@ -346,77 +487,88 @@ export class GpsTrackingService {
       timestamp: position.timestamp
     };
 
-    // Verificar precisión mínima
     if (newPoint.accuracy && newPoint.accuracy > this.config.minimumAccuracy) {
-      if (environment.debug.logGps) {
-        console.log('⚠️ Precisión insuficiente:', newPoint.accuracy, 'm');
-      }
+      console.log('⚠️ Precisión baja, ignorando punto:', newPoint.accuracy);
       return;
     }
 
-    // Calcular distancia desde el último punto
+    const currentSpeedMph = (position.coords.speed || 0) * 2.237;
+    
     const lastPoint = currentState.routePoints[currentState.routePoints.length - 1];
-    const distanceFromLast = this.calculateDistance(lastPoint, newPoint);
+    const distanceFromLast = this.calculateDistance(lastPoint, newPoint) * 5280;
 
-    // Solo agregar si hay movimiento significativo
-    if (distanceFromLast < this.config.minimumDistance / 1609.34) { // Convertir metros a millas
-      return;
-    }
+    const isMoving = currentSpeedMph >= 2 || distanceFromLast > 30;
 
-    // Calcular velocidad en mph
-    const speedMph = (newPoint.speed || 0) * 2.237; // m/s a mph
-
-    // Verificar si está en movimiento (en auto)
-    if (speedMph >= this.config.minimumSpeedForDriving * 2.237) {
+    if (isMoving) {
       this.lastMovementTime = Date.now();
-      this.clearAutoStopTimeout();
+      
+      if (this.isTemporarilyStopped) {
+        console.log('🚗 Movimiento detectado, reanudando tracking...');
+        this.isTemporarilyStopped = false;
+        this.stoppedSince = 0;
+        this.clearAutoStopTimeout();
+      }
+
+      if (distanceFromLast >= this.config.minimumDistance * 3.281) {
+        const newDistance = currentState.currentDistance + this.calculateDistance(lastPoint, newPoint);
+        
+        this.trackingStateSubject.next({
+          ...currentState,
+          routePoints: [...currentState.routePoints, newPoint],
+          currentPosition: newPoint,
+          currentDistance: newDistance,
+          currentSpeed: currentSpeedMph,
+          lastUpdate: Date.now()
+        });
+
+        this.saveTrackingState();
+      } else {
+        this.trackingStateSubject.next({
+          ...currentState,
+          currentPosition: newPoint,
+          currentSpeed: currentSpeedMph,
+          lastUpdate: Date.now()
+        });
+      }
     } else {
-      // Iniciar contador de auto-stop si no hay movimiento
-      this.startAutoStopTimer();
-    }
+      if (!this.isTemporarilyStopped) {
+        this.isTemporarilyStopped = true;
+        this.stoppedSince = Date.now();
+        console.log('⏸️ Vehículo detenido, iniciando contador de auto-stop...');
+        this.scheduleAutoStop();
+      }
 
-    // Actualizar estado
-    const updatedRoutePoints = [...currentState.routePoints, newPoint];
-    const totalDistance = currentState.currentDistance + distanceFromLast;
-
-    this.trackingStateSubject.next({
-      ...currentState,
-      routePoints: updatedRoutePoints,
-      currentPosition: newPoint,
-      currentDistance: totalDistance,
-      currentSpeed: speedMph,
-      lastUpdate: Date.now()
-    });
-
-    // Guardar estado temporal
-    this.saveTrackingState();
-
-    if (environment.debug.logGps) {
-      console.log(`📍 Nueva posición - Dist: ${totalDistance.toFixed(2)} mi, Vel: ${speedMph.toFixed(1)} mph`);
+      this.trackingStateSubject.next({
+        ...currentState,
+        currentSpeed: 0,
+        lastUpdate: Date.now()
+      });
     }
   }
 
-  // ===========================================
-  // DETECCIÓN AUTOMÁTICA DE PARADA
-  // ===========================================
-
   /**
-   * Inicia el timer para detección automática de parada
+   * Programa el auto-stop después del tiempo configurado
    */
-  private startAutoStopTimer(): void {
-    if (this.autoStopTimeout) {
-      return; // Ya hay un timer activo
+  private scheduleAutoStop(): void {
+    if (this.autoStopMinutes === 0) {
+      console.log('⏰ Auto-stop desactivado (modo manual)');
+      return;
     }
+
+    this.clearAutoStopTimeout();
+
+    const timeoutMs = this.autoStopMinutes * 60 * 1000;
+    
+    console.log(`⏰ Auto-stop programado en ${this.autoStopMinutes} minutos`);
 
     this.autoStopTimeout = setTimeout(() => {
-      console.log('⏰ Timeout de inactividad alcanzado');
-      this.handleAutoStop();
-    }, this.config.stopTrackingTimeout);
+      if (this.isTemporarilyStopped) {
+        console.log('⏰ Tiempo de auto-stop alcanzado');
+        this.handleAutoStop();
+      }
+    }, timeoutMs);
   }
 
-  /**
-   * Cancela el timer de auto-stop
-   */
   private clearAutoStopTimeout(): void {
     if (this.autoStopTimeout) {
       clearTimeout(this.autoStopTimeout);
@@ -424,9 +576,6 @@ export class GpsTrackingService {
     }
   }
 
-  /**
-   * Maneja la parada automática del tracking
-   */
   private async handleAutoStop(): Promise<void> {
     const currentState = this.trackingStateSubject.value;
     
@@ -434,7 +583,7 @@ export class GpsTrackingService {
       return;
     }
 
-    console.log('🚗💤 Detectada parada del vehículo. Finalizando tracking automáticamente...');
+    console.log('🚗💤 Auto-stop: Finalizando tracking automáticamente...');
 
     try {
       await this.stopTracking(true);
@@ -444,12 +593,9 @@ export class GpsTrackingService {
   }
 
   // ===========================================
-  // TIMER Y TIEMPO TRANSCURRIDO
+  // TIMER
   // ===========================================
 
-  /**
-   * Inicia el timer que cuenta el tiempo transcurrido
-   */
   private startTimer(): void {
     this.timerSubscription = interval(1000).pipe(
       takeUntil(this.stopTracking$)
@@ -465,9 +611,6 @@ export class GpsTrackingService {
     });
   }
 
-  /**
-   * Detiene el timer
-   */
   private stopTimer(): void {
     if (this.timerSubscription) {
       this.timerSubscription.unsubscribe();
@@ -476,12 +619,9 @@ export class GpsTrackingService {
   }
 
   // ===========================================
-  // CÁLCULOS Y UTILIDADES
+  // UTILIDADES
   // ===========================================
 
-  /**
-   * Obtiene la posición actual del dispositivo
-   */
   async getCurrentPosition(): Promise<Position | null> {
     try {
       const position = await Geolocation.getCurrentPosition({
@@ -495,12 +635,8 @@ export class GpsTrackingService {
     }
   }
 
-  /**
-   * Calcula la distancia entre dos puntos usando la fórmula de Haversine
-   * @returns Distancia en millas
-   */
   calculateDistance(point1: GpsPoint, point2: GpsPoint): number {
-    const R = 3959; // Radio de la Tierra en millas
+    const R = 3959;
     
     const dLat = this.toRad(point2.latitude - point1.latitude);
     const dLon = this.toRad(point2.longitude - point1.longitude);
@@ -516,31 +652,19 @@ export class GpsTrackingService {
     return R * c;
   }
 
-  /**
-   * Convierte grados a radianes
-   */
   private toRad(degrees: number): number {
     return degrees * (Math.PI / 180);
   }
 
-  /**
-   * Convierte millas a kilómetros
-   */
   private milesToKm(miles: number): number {
     return miles * 1.60934;
   }
 
-  /**
-   * Calcula la velocidad promedio
-   */
   private calculateAverageSpeed(miles: number, seconds: number): number {
     if (seconds === 0) return 0;
-    return (miles / seconds) * 3600; // mph
+    return (miles / seconds) * 3600;
   }
 
-  /**
-   * Calcula la velocidad máxima del recorrido
-   */
   private calculateMaxSpeed(points: GpsPoint[]): number {
     let maxSpeed = 0;
     
@@ -556,9 +680,6 @@ export class GpsTrackingService {
     return maxSpeed;
   }
 
-  /**
-   * Genera un ID único para el trip
-   */
   private generateTripId(): string {
     return `trip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
@@ -567,17 +688,12 @@ export class GpsTrackingService {
   // PERMISOS
   // ===========================================
 
-  /**
-   * Verifica y solicita permisos de ubicación
-   */
   async checkAndRequestPermissions(): Promise<boolean> {
     try {
-      // Verificar permisos actuales
       let permissions = await Geolocation.checkPermissions();
       
       console.log('📍 Estado de permisos:', permissions.location);
 
-      // Si no están concedidos, solicitarlos
       if (permissions.location !== 'granted') {
         permissions = await Geolocation.requestPermissions();
         
@@ -596,12 +712,9 @@ export class GpsTrackingService {
   }
 
   // ===========================================
-  // PERSISTENCIA DE ESTADO
+  // PERSISTENCIA
   // ===========================================
 
-  /**
-   * Guarda el estado actual del tracking
-   */
   private async saveTrackingState(): Promise<void> {
     const state = this.trackingStateSubject.value;
     
@@ -611,9 +724,6 @@ export class GpsTrackingService {
     });
   }
 
-  /**
-   * Restaura el estado del tracking (si la app se cerró durante un tracking)
-   */
   private async restoreTrackingState(): Promise<void> {
     try {
       const { value } = await Preferences.get({
@@ -626,13 +736,12 @@ export class GpsTrackingService {
         if (savedState.isTracking) {
           console.log('🔄 Restaurando tracking en progreso...');
           
-          // Actualizar tiempo transcurrido
           if (savedState.startTime) {
             const elapsedSinceLastUpdate = Math.floor((Date.now() - (savedState.lastUpdate || savedState.startTime)) / 1000);
             savedState.elapsedTime += elapsedSinceLastUpdate;
           }
           
-          savedState.isPaused = true; // Pausar hasta que el usuario decida continuar
+          savedState.isPaused = true;
           this.trackingStateSubject.next(savedState);
         }
       }
@@ -641,18 +750,12 @@ export class GpsTrackingService {
     }
   }
 
-  /**
-   * Limpia el estado guardado
-   */
   private async clearSavedTrackingState(): Promise<void> {
     await Preferences.remove({
       key: environment.storage.tempTrackingKey
     });
   }
 
-  /**
-   * Guarda el tracking para sincronizar después (si falló el envío)
-   */
   private async saveTrackingForLaterSync(state: TrackingState): Promise<void> {
     try {
       const pendingKey = `pending_trip_${Date.now()}`;
@@ -666,9 +769,6 @@ export class GpsTrackingService {
     }
   }
 
-  /**
-   * Resetea el estado del tracking
-   */
   private resetTrackingState(): void {
     this.trackingStateSubject.next({
       isTracking: false,
@@ -678,23 +778,30 @@ export class GpsTrackingService {
       currentDistance: 0,
       currentSpeed: 0
     });
+    this.isTemporarilyStopped = false;
+    this.stoppedSince = 0;
   }
 
   // ===========================================
   // GETTERS
   // ===========================================
 
-  /**
-   * Obtiene el estado actual del tracking
-   */
   getCurrentState(): TrackingState {
     return this.trackingStateSubject.value;
   }
 
-  /**
-   * Verifica si hay un tracking activo
-   */
   isTrackingActive(): boolean {
     return this.trackingStateSubject.value.isTracking;
+  }
+
+  getStoppedTime(): number {
+    if (!this.isTemporarilyStopped || this.stoppedSince === 0) {
+      return 0;
+    }
+    return Math.floor((Date.now() - this.stoppedSince) / 1000);
+  }
+
+  isVehicleStopped(): boolean {
+    return this.isTemporarilyStopped;
   }
 }

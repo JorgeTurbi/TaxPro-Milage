@@ -89,6 +89,14 @@ export class AuthService {
   login(credentials: LoginCredentials): Observable<User> {
     console.log('🔐 Iniciando login para:', credentials.email);
     
+    // ============================================
+    // MODO DEMO - Para pruebas sin backend
+    // Credenciales de prueba: demo@test.com / demo123
+    // ============================================
+    if (this.isDemoMode(credentials)) {
+      return this.demoLogin(credentials);
+    }
+    
     const url = `${environment.apiUrl}${environment.endpoints.login}`;
     
     return this.http.post<LoginResponse>(url, credentials).pipe(
@@ -115,6 +123,61 @@ export class AuthService {
       map(response => response.data.user),
       catchError(this.handleError)
     );
+  }
+
+  /**
+   * Verifica si se debe usar el modo demo
+   */
+  private isDemoMode(credentials: LoginCredentials): boolean {
+    // Activar modo demo con credenciales específicas o si la API no está configurada
+    const isDemoCredentials = credentials.email === 'demo@test.com' && credentials.password === 'demo123';
+    const isApiNotConfigured = environment.apiUrl.includes('tu-dominio.com');
+    return isDemoCredentials || isApiNotConfigured;
+  }
+
+  /**
+   * Login en modo demo (sin backend)
+   */
+  private demoLogin(credentials: LoginCredentials): Observable<User> {
+    console.log('🎭 Usando MODO DEMO');
+    
+    // Simular delay de red
+    return new Observable(observer => {
+      setTimeout(() => {
+        // Usuario demo
+        const demoUser: User = {
+          id: 'demo-user-001',
+          email: credentials.email || 'demo@test.com',
+          firstName: 'Usuario',
+          lastName: 'Demo',
+          phone: '+1 555-0123',
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString()
+        };
+
+        // Token demo (válido por 24 horas)
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 24);
+        
+        this.authToken = {
+          token: 'demo-token-' + Date.now(),
+          refreshToken: 'demo-refresh-' + Date.now(),
+          expiresAt: expiresAt.toISOString()
+        };
+
+        // Actualizar estado
+        this.currentUserSubject.next(demoUser);
+        this.isAuthenticatedSubject.next(true);
+
+        // Guardar en almacenamiento
+        this.saveTokenToStorage(this.authToken);
+        this.saveUserToStorage(demoUser);
+
+        console.log('✅ Login demo exitoso');
+        observer.next(demoUser);
+        observer.complete();
+      }, 800); // Simular 800ms de latencia
+    });
   }
 
   /**

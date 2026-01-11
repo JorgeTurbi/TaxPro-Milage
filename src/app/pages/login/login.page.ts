@@ -36,6 +36,7 @@ import {
 import { AuthService } from '../../services/auth.service';
 import { BiometryType } from '@capgo/capacitor-native-biometric/dist/esm/definitions';
 
+
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -222,8 +223,14 @@ import { BiometryType } from '@capgo/capacitor-native-biometric/dist/esm/definit
       margin-bottom: 8px;
       border: 1px solid #e2e8f0;
       border-radius: 12px;
+        --color: #1a202c;             
+  --placeholder-color: #a0aec0;  
+  --placeholder-opacity: 1;
+  color: #1a202c;
     }
-
+      .taxpro-input input {
+  color: #1a202c !important;
+}
     .taxpro-input ion-icon {
       color: #718096;
       margin-right: 8px;

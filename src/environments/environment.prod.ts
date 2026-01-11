@@ -32,8 +32,8 @@ export const environment = {
   // ===========================================
   // CONFIGURACIÓN DE GOOGLE MAPS - PRODUCCIÓN
   // ===========================================
-  
-  googleMapsApiKey: 'AIzaSyCEGf9zWOtFVJUtV8BpZj06vvJbitxBOiU',
+
+  googleMapsApiKey: '<GOOGLE_MAPS_API_KEY>',
 
   mapDefaults: {
     lat: 39.8283,
