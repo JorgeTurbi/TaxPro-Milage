@@ -1,37 +1,469 @@
-/*
- * App Global CSS
- * ----------------------------------------------------------------------------
- * Put style rules here that you want to apply globally. These styles are for
- * the entire app and not just one component. Additionally, this file can be
- * used as an entry point to import other CSS/Sass files to be included in the
- * output CSS.
- * For more information on global stylesheets, visit the documentation:
- * https://ionicframework.com/docs/layout/global-stylesheets
+/**
+ * TaxPro Mileage - Estilos Globales
+ * ==================================
+ * Estilos CSS globales que aplican a toda la aplicación.
  */
 
-/* Core CSS required for Ionic components to work properly */
-@import "@ionic/angular/css/core.css";
+/* Importar fuente Inter de Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* Basic CSS for apps built with Ionic */
+/* Importar tema de Ionic Core */
+@import "@ionic/angular/css/core.css";
 @import "@ionic/angular/css/normalize.css";
 @import "@ionic/angular/css/structure.css";
 @import "@ionic/angular/css/typography.css";
 @import "@ionic/angular/css/display.css";
 
-/* Optional CSS utils that can be commented out */
+/* Importar utilidades opcionales de Ionic */
 @import "@ionic/angular/css/padding.css";
 @import "@ionic/angular/css/float-elements.css";
 @import "@ionic/angular/css/text-alignment.css";
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
 
-/**
- * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
- */
+/* ==============================================
+ * ESTILOS GLOBALES
+ * ============================================== */
 
-/* @import "@ionic/angular/css/palettes/dark.always.css"; */
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import '@ionic/angular/css/palettes/dark.system.css';
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--ion-font-family);
+}
+
+/* ==============================================
+ * COMPONENTES PERSONALIZADOS
+ * ============================================== */
+
+/* Tarjetas con estilo TaxPro */
+.taxpro-card {
+  background: var(--taxpro-card-background);
+  border-radius: var(--taxpro-border-radius);
+  box-shadow: var(--taxpro-card-shadow);
+  padding: 16px;
+  margin: 16px;
+  border: 1px solid var(--taxpro-border-color);
+}
+
+/* Tarjeta estadística */
+.stat-card {
+  background: linear-gradient(135deg, var(--taxpro-gradient-start), var(--taxpro-gradient-end));
+  color: white;
+  border-radius: var(--taxpro-border-radius);
+  padding: 20px;
+  margin: 8px;
+  box-shadow: 0 4px 15px rgba(26, 54, 93, 0.3);
+  
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  
+  .stat-label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+  }
+  
+  .stat-icon {
+    font-size: 2.5rem;
+    opacity: 0.3;
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+}
+
+/* Tarjeta secundaria */
+.stat-card-secondary {
+  background: white;
+  color: var(--taxpro-text-primary);
+  border: 1px solid var(--taxpro-border-color);
+  
+  .stat-value {
+    color: var(--ion-color-primary);
+  }
+  
+  .stat-label {
+    color: var(--taxpro-text-secondary);
+  }
+  
+  .stat-icon {
+    color: var(--ion-color-primary);
+    opacity: 0.2;
+  }
+}
+
+/* Cabecera con gradiente */
+.header-gradient {
+  ion-toolbar {
+    --background: linear-gradient(135deg, var(--taxpro-gradient-start), var(--taxpro-gradient-end));
+    --color: white;
+  }
+}
+
+/* Botón primario TaxPro */
+.btn-taxpro {
+  --background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-secondary));
+  --border-radius: 25px;
+  --box-shadow: 0 4px 15px rgba(26, 54, 93, 0.3);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.5px;
+}
+
+/* Botón de tracking activo */
+.btn-tracking-active {
+  --background: linear-gradient(135deg, var(--ion-color-danger), #c53030);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 15px rgba(229, 62, 62, 0.3);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 4px 25px rgba(229, 62, 62, 0.5);
+  }
+}
+
+/* Input con estilo TaxPro */
+.taxpro-input {
+  --background: white;
+  --border-radius: 12px;
+  --border-color: var(--taxpro-border-color);
+  --border-width: 1px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --highlight-color-focused: var(--ion-color-primary);
+  margin-bottom: 16px;
+}
+
+/* Lista de recorridos */
+.trip-item {
+  --background: var(--taxpro-card-background);
+  --border-radius: 12px;
+  margin: 8px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  
+  .trip-distance {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--ion-color-primary);
+  }
+  
+  .trip-date {
+    font-size: 0.875rem;
+    color: var(--taxpro-text-muted);
+  }
+  
+  .trip-duration {
+    font-size: 0.75rem;
+    color: var(--taxpro-text-secondary);
+  }
+}
+
+/* ==============================================
+ * PÁGINA DE LOGIN
+ * ============================================== */
+
+.login-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 24px;
+  background: linear-gradient(180deg, var(--taxpro-gradient-start) 0%, var(--taxpro-gradient-end) 100%);
+}
+
+.login-logo {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 32px;
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.login-card {
+  background: white;
+  border-radius: 24px;
+  padding: 32px 24px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+}
+
+.login-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ion-color-primary);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.login-subtitle {
+  font-size: 0.875rem;
+  color: var(--taxpro-text-muted);
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.biometric-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  background: var(--ion-color-light);
+  border-radius: 16px;
+  margin-top: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: var(--taxpro-border-color);
+  }
+  
+  ion-icon {
+    font-size: 2rem;
+    color: var(--ion-color-primary);
+  }
+  
+  span {
+    font-size: 0.875rem;
+    color: var(--taxpro-text-secondary);
+  }
+}
+
+/* ==============================================
+ * MAPA
+ * ============================================== */
+
+.map-container {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  border-radius: var(--taxpro-border-radius);
+  overflow: hidden;
+}
+
+.map-full {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* Control de tracking flotante */
+.tracking-controls {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  gap: 12px;
+  
+  ion-button {
+    --border-radius: 50%;
+    width: 64px;
+    height: 64px;
+    
+    ion-icon {
+      font-size: 1.5rem;
+    }
+  }
+}
+
+/* Info de tracking activo */
+.tracking-info {
+  position: fixed;
+  top: 100px;
+  left: 16px;
+  right: 16px;
+  z-index: 1000;
+  background: white;
+  border-radius: var(--taxpro-border-radius);
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  justify-content: space-around;
+  
+  .tracking-stat {
+    text-align: center;
+    
+    .value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--ion-color-primary);
+    }
+    
+    .label {
+      font-size: 0.75rem;
+      color: var(--taxpro-text-muted);
+    }
+  }
+}
+
+/* ==============================================
+ * DASHBOARD
+ * ============================================== */
+
+.dashboard-header {
+  padding: 24px 16px 16px;
+  
+  .welcome-text {
+    font-size: 0.875rem;
+    color: var(--taxpro-text-muted);
+    margin-bottom: 4px;
+  }
+  
+  .user-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--taxpro-text-primary);
+  }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.chart-container {
+  background: var(--taxpro-card-background);
+  border-radius: var(--taxpro-border-radius);
+  padding: 16px;
+  margin: 16px;
+  box-shadow: var(--taxpro-card-shadow);
+  
+  .chart-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--taxpro-text-primary);
+    margin-bottom: 16px;
+  }
+}
+
+.recent-trips-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 16px 8px;
+  
+  h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--taxpro-text-primary);
+    margin: 0;
+  }
+  
+  a {
+    font-size: 0.875rem;
+    color: var(--ion-color-secondary);
+    text-decoration: none;
+  }
+}
+
+/* ==============================================
+ * ANIMACIONES
+ * ============================================== */
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==============================================
+ * UTILIDADES
+ * ============================================== */
+
+.text-center {
+  text-align: center;
+}
+
+.text-primary {
+  color: var(--ion-color-primary) !important;
+}
+
+.text-muted {
+  color: var(--taxpro-text-muted) !important;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.mt-16 {
+  margin-top: 16px;
+}
+
+.mb-16 {
+  margin-bottom: 16px;
+}
+
+.p-16 {
+  padding: 16px;
+}
+
+/* ==============================================
+ * RESPONSIVE
+ * ============================================== */
+
+@media (min-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .login-card {
+    padding: 48px 40px;
+  }
+}
+
+/* ==============================================
+ * SAFE AREAS (Notch, etc.)
+ * ============================================== */
+
+ion-header {
+  ion-toolbar:first-of-type {
+    padding-top: var(--ion-safe-area-top, 0);
+  }
+}
+
+ion-tab-bar {
+  padding-bottom: var(--ion-safe-area-bottom, 0);
+}

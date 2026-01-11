@@ -1,2 +1,177 @@
-// For information on how to create your own theme, please refer to:
-// https://ionicframework.com/docs/theming/
+/**
+ * TaxPro Suite - Variables de Tema
+ * ================================
+ * Este archivo contiene todas las variables CSS personalizadas
+ * con los colores corporativos de TaxPro Suite.
+ * 
+ * NOTA: Puedes modificar estos colores según los colores exactos
+ * de tu marca TaxPro Suite.
+ */
+
+:root {
+  /* ==============================================
+   * COLORES PRIMARIOS DE TAXPRO SUITE
+   * ============================================== */
+  
+  /* Azul oscuro principal - Color corporativo */
+  --ion-color-primary: #1a365d;
+  --ion-color-primary-rgb: 26, 54, 93;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #172f52;
+  --ion-color-primary-tint: #314a6d;
+
+  /* Azul claro secundario */
+  --ion-color-secondary: #3182ce;
+  --ion-color-secondary-rgb: 49, 130, 206;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #2b72b5;
+  --ion-color-secondary-tint: #468fd3;
+
+  /* Verde - Para éxito/confirmación */
+  --ion-color-tertiary: #38a169;
+  --ion-color-tertiary-rgb: 56, 161, 105;
+  --ion-color-tertiary-contrast: #ffffff;
+  --ion-color-tertiary-contrast-rgb: 255, 255, 255;
+  --ion-color-tertiary-shade: #318e5c;
+  --ion-color-tertiary-tint: #4cab78;
+
+  /* Verde para estados de éxito */
+  --ion-color-success: #38a169;
+  --ion-color-success-rgb: 56, 161, 105;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #318e5c;
+  --ion-color-success-tint: #4cab78;
+
+  /* Amarillo para advertencias */
+  --ion-color-warning: #ecc94b;
+  --ion-color-warning-rgb: 236, 201, 75;
+  --ion-color-warning-contrast: #000000;
+  --ion-color-warning-contrast-rgb: 0, 0, 0;
+  --ion-color-warning-shade: #d0b142;
+  --ion-color-warning-tint: #eece5d;
+
+  /* Rojo para errores/peligro */
+  --ion-color-danger: #e53e3e;
+  --ion-color-danger-rgb: 229, 62, 62;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #ca3737;
+  --ion-color-danger-tint: #e85151;
+
+  /* Tonos oscuros */
+  --ion-color-dark: #1a202c;
+  --ion-color-dark-rgb: 26, 32, 44;
+  --ion-color-dark-contrast: #ffffff;
+  --ion-color-dark-contrast-rgb: 255, 255, 255;
+  --ion-color-dark-shade: #171c27;
+  --ion-color-dark-tint: #313641;
+
+  /* Tonos medios */
+  --ion-color-medium: #718096;
+  --ion-color-medium-rgb: 113, 128, 150;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #637184;
+  --ion-color-medium-tint: #7f8da1;
+
+  /* Tonos claros */
+  --ion-color-light: #f7fafc;
+  --ion-color-light-rgb: 247, 250, 252;
+  --ion-color-light-contrast: #1a202c;
+  --ion-color-light-contrast-rgb: 26, 32, 44;
+  --ion-color-light-shade: #d9dde1;
+  --ion-color-light-tint: #f8fbfc;
+
+  /* ==============================================
+   * COLORES PERSONALIZADOS TAXPRO
+   * ============================================== */
+  
+  /* Azul acento para iconos y detalles */
+  --taxpro-accent: #4299e1;
+  --taxpro-accent-light: #63b3ed;
+  --taxpro-accent-dark: #2b6cb0;
+  
+  /* Gradiente de cabecera */
+  --taxpro-gradient-start: #1a365d;
+  --taxpro-gradient-end: #2c5282;
+  
+  /* Fondo de tarjetas */
+  --taxpro-card-background: #ffffff;
+  --taxpro-card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  
+  /* Bordes */
+  --taxpro-border-color: #e2e8f0;
+  --taxpro-border-radius: 12px;
+  
+  /* Texto */
+  --taxpro-text-primary: #1a202c;
+  --taxpro-text-secondary: #4a5568;
+  --taxpro-text-muted: #718096;
+
+  /* ==============================================
+   * CONFIGURACIÓN DE TIPOGRAFÍA
+   * ============================================== */
+  
+  --ion-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  
+  /* ==============================================
+   * CONFIGURACIÓN GENERAL
+   * ============================================== */
+  
+  --ion-background-color: #f7fafc;
+  --ion-background-color-rgb: 247, 250, 252;
+  
+  --ion-text-color: #1a202c;
+  --ion-text-color-rgb: 26, 32, 44;
+  
+  --ion-toolbar-background: #1a365d;
+  --ion-toolbar-color: #ffffff;
+  
+  --ion-tab-bar-background: #ffffff;
+  --ion-tab-bar-color: #718096;
+  --ion-tab-bar-color-selected: #1a365d;
+}
+
+/* ==============================================
+ * TEMA OSCURO (iOS y Android)
+ * ============================================== */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ion-background-color: #1a202c;
+    --ion-background-color-rgb: 26, 32, 44;
+    
+    --ion-text-color: #f7fafc;
+    --ion-text-color-rgb: 247, 250, 252;
+    
+    --taxpro-card-background: #2d3748;
+    --taxpro-border-color: #4a5568;
+    --taxpro-text-primary: #f7fafc;
+    --taxpro-text-secondary: #e2e8f0;
+    --taxpro-text-muted: #a0aec0;
+    
+    --ion-tab-bar-background: #2d3748;
+    --ion-tab-bar-color: #a0aec0;
+  }
+}
+
+/* ==============================================
+ * CONFIGURACIÓN ESPECÍFICA PARA iOS
+ * ============================================== */
+
+.ios {
+  --ion-toolbar-background: #1a365d;
+  --ion-toolbar-color: #ffffff;
+}
+
+/* ==============================================
+ * CONFIGURACIÓN ESPECÍFICA PARA ANDROID
+ * ============================================== */
+
+.md {
+  --ion-toolbar-background: #1a365d;
+  --ion-toolbar-color: #ffffff;
+}
