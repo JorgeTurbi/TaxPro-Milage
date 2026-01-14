@@ -39,7 +39,9 @@ import {
   navigateOutline,
   chevronForwardOutline,
   calendarOutline,
-  speedometerOutline
+  speedometerOutline,
+  searchOutline,
+  notificationsOutline
 } from 'ionicons/icons';
 import { Chart, registerables } from 'chart.js';
 import { Subscription } from 'rxjs';
@@ -75,440 +77,8 @@ Chart.register(...registerables);
     IonSkeletonText,
     IonChip
   ],
-  template: `
-    <ion-header class="header-gradient">
-      <ion-toolbar>
-        <ion-title>Dashboard</ion-title>
-      </ion-toolbar>
-    </ion-header>
-
-    <ion-content [fullscreen]="true">
-      <!-- Pull to Refresh -->
-      <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
-        <ion-refresher-content></ion-refresher-content>
-      </ion-refresher>
-
-      <!-- Saludo y nombre del usuario -->
-      <div class="dashboard-header">
-        <p class="welcome-text">{{ getGreeting() }}</p>
-        <h1 class="user-name">{{ user?.firstName || 'Usuario' }}</h1>
-      </div>
-
-      <!-- Grid de estadísticas principales -->
-      <div class="stats-grid">
-        
-        <!-- Millas este mes -->
-        <div class="stat-card">
-          <div class="stat-content">
-            @if (isLoading) {
-              <ion-skeleton-text [animated]="true" style="width: 80px; height: 32px;"></ion-skeleton-text>
-            } @else {
-              <div class="stat-value">{{ statistics?.milesThisMonth | number:'1.1-1' }}</div>
-            }
-            <div class="stat-label">Millas este mes</div>
-          </div>
-          <ion-icon name="car-outline" class="stat-icon"></ion-icon>
-        </div>
-
-        <!-- Recorridos este mes -->
-        <div class="stat-card stat-card-secondary">
-          <div class="stat-content">
-            @if (isLoading) {
-              <ion-skeleton-text [animated]="true" style="width: 60px; height: 32px;"></ion-skeleton-text>
-            } @else {
-              <div class="stat-value">{{ statistics?.tripsThisMonth }}</div>
-            }
-            <div class="stat-label">Recorridos</div>
-          </div>
-          <ion-icon name="navigate-outline" class="stat-icon"></ion-icon>
-        </div>
-
-        <!-- Deducción estimada -->
-        <div class="stat-card stat-card-secondary">
-          <div class="stat-content">
-            @if (isLoading) {
-              <ion-skeleton-text [animated]="true" style="width: 80px; height: 32px;"></ion-skeleton-text>
-            } @else {
-              <div class="stat-value">{{ getMonthlyDeduction() | currency:'USD':'symbol':'1.2-2' }}</div>
-            }
-            <div class="stat-label">Deducción est.</div>
-          </div>
-          <ion-icon name="cash-outline" class="stat-icon"></ion-icon>
-        </div>
-
-        <!-- Millas esta semana -->
-        <div class="stat-card stat-card-secondary">
-          <div class="stat-content">
-            @if (isLoading) {
-              <ion-skeleton-text [animated]="true" style="width: 60px; height: 32px;"></ion-skeleton-text>
-            } @else {
-              <div class="stat-value">{{ statistics?.milesThisWeek | number:'1.1-1' }}</div>
-            }
-            <div class="stat-label">Esta semana</div>
-          </div>
-          <ion-icon name="trending-up-outline" class="stat-icon"></ion-icon>
-        </div>
-
-      </div>
-
-      <!-- Botón de iniciar tracking -->
-      <div class="quick-action">
-        <ion-button 
-          expand="block" 
-          class="btn-taxpro btn-start-tracking"
-          [routerLink]="['/tabs/tracking']"
-        >
-          <ion-icon slot="start" name="navigate-outline"></ion-icon>
-          @if (isTrackingActive) {
-            Ver Tracking Activo
-          } @else {
-            Iniciar Nuevo Recorrido
-          }
-        </ion-button>
-      </div>
-
-      <!-- Gráfico de millas diarias -->
-      <div class="chart-container">
-        <h3 class="chart-title">
-          <ion-icon name="calendar-outline"></ion-icon>
-          Millas últimos 7 días
-        </h3>
-        <div class="chart-wrapper">
-          <canvas #chartCanvas></canvas>
-        </div>
-      </div>
-
-      <!-- Recorridos recientes -->
-      <div class="recent-trips-section">
-        <div class="recent-trips-title">
-          <h3>
-            <ion-icon name="time-outline"></ion-icon>
-            Recorridos Recientes
-          </h3>
-          <a [routerLink]="['/tabs/history']">Ver todos</a>
-        </div>
-
-        <ion-list lines="none">
-          @if (isLoading) {
-            @for (i of [1, 2, 3]; track i) {
-              <ion-item class="trip-item">
-                <ion-skeleton-text [animated]="true" style="width: 100%; height: 60px;"></ion-skeleton-text>
-              </ion-item>
-            }
-          } @else if (recentTrips.length === 0) {
-            <div class="empty-state">
-              <ion-icon name="car-outline"></ion-icon>
-              <p>No hay recorridos aún</p>
-              <small>Inicia tu primer recorrido ahora</small>
-            </div>
-          } @else {
-            @for (trip of recentTrips; track trip.id) {
-              <ion-item 
-                class="trip-item" 
-                [routerLink]="['/trip', trip.id]"
-                [detail]="true"
-              >
-                <div class="trip-icon" slot="start">
-                  <ion-icon name="car-outline"></ion-icon>
-                </div>
-                <ion-label>
-                  <h2 class="trip-distance">{{ trip.distanceMiles | number:'1.2-2' }} mi</h2>
-                  <p class="trip-date">{{ formatDate(trip.startTime) }}</p>
-                  <p class="trip-duration">{{ formatDuration(trip.durationSeconds) }}</p>
-                </ion-label>
-                <ion-chip slot="end" [color]="getPurposeColor(trip.purpose)">
-                  {{ getPurposeLabel(trip.purpose) }}
-                </ion-chip>
-              </ion-item>
-            }
-          }
-        </ion-list>
-      </div>
-
-      <!-- Estadísticas anuales -->
-      <div class="yearly-stats">
-        <h3 class="section-title">
-          <ion-icon name="speedometer-outline"></ion-icon>
-          Resumen Anual
-        </h3>
-        <div class="yearly-stats-grid">
-          <div class="yearly-stat">
-            <span class="yearly-value">{{ statistics?.totalMiles | number:'1.0-0' }}</span>
-            <span class="yearly-label">Millas totales</span>
-          </div>
-          <div class="yearly-stat">
-            <span class="yearly-value">{{ statistics?.totalTrips }}</span>
-            <span class="yearly-label">Recorridos</span>
-          </div>
-          <div class="yearly-stat">
-            <span class="yearly-value">{{ statistics?.totalDeductionAmount | currency:'USD':'symbol':'1.0-0' }}</span>
-            <span class="yearly-label">Deducción total</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Espacio inferior para el tab bar -->
-      <div style="height: 80px;"></div>
-
-    </ion-content>
-  `,
-  styles: [`
-    .dashboard-header {
-      padding: 24px 16px 16px;
-      background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
-      color: white;
-      margin-bottom: -40px;
-      padding-bottom: 60px;
-    }
-
-    .welcome-text {
-      font-size: 0.875rem;
-      opacity: 0.8;
-      margin: 0 0 4px 0;
-    }
-
-    .user-name {
-      font-size: 1.75rem;
-      font-weight: 700;
-      margin: 0;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      padding: 0 16px;
-      margin-bottom: 16px;
-    }
-
-    .stat-card {
-      background: white;
-      border-radius: 16px;
-      padding: 16px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .stat-card:first-child {
-      grid-column: span 2;
-      background: linear-gradient(135deg, #1a365d 0%, #3182ce 100%);
-      color: white;
-    }
-
-    .stat-card:first-child .stat-value {
-      font-size: 2.5rem;
-    }
-
-    .stat-content {
-      position: relative;
-      z-index: 1;
-    }
-
-    .stat-value {
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin-bottom: 4px;
-      color: #1a365d;
-    }
-
-    .stat-card:first-child .stat-value {
-      color: white;
-    }
-
-    .stat-label {
-      font-size: 0.75rem;
-      opacity: 0.8;
-    }
-
-    .stat-icon {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 3rem;
-      opacity: 0.15;
-    }
-
-    .stat-card:first-child .stat-icon {
-      opacity: 0.2;
-    }
-
-    .quick-action {
-      padding: 0 16px;
-      margin-bottom: 24px;
-    }
-
-    .btn-start-tracking {
-      --background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
-      --border-radius: 16px;
-      height: 56px;
-      font-size: 1rem;
-    }
-
-    .chart-container {
-      background: white;
-      border-radius: 16px;
-      padding: 16px;
-      margin: 0 16px 24px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    }
-
-    .chart-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 1rem;
-      font-weight: 600;
-      color: #1a365d;
-      margin: 0 0 16px 0;
-    }
-
-    .chart-title ion-icon {
-      color: #3182ce;
-    }
-
-    .chart-wrapper {
-      height: 200px;
-    }
-
-    .recent-trips-section {
-      margin: 0 16px 24px;
-    }
-
-    .recent-trips-title {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-
-    .recent-trips-title h3 {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 1rem;
-      font-weight: 600;
-      color: #1a365d;
-      margin: 0;
-    }
-
-    .recent-trips-title a {
-      font-size: 0.875rem;
-      color: #3182ce;
-      text-decoration: none;
-    }
-
-    .trip-item {
-      --background: white;
-      --border-radius: 12px;
-      margin-bottom: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    }
-
-    .trip-icon {
-      width: 40px;
-      height: 40px;
-      background: #edf2f7;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 12px;
-    }
-
-    .trip-icon ion-icon {
-      font-size: 1.25rem;
-      color: #1a365d;
-    }
-
-    .trip-distance {
-      font-size: 1.125rem;
-      font-weight: 600;
-      color: #1a365d;
-      margin: 0;
-    }
-
-    .trip-date {
-      font-size: 0.875rem;
-      color: #718096;
-      margin: 4px 0 2px;
-    }
-
-    .trip-duration {
-      font-size: 0.75rem;
-      color: #a0aec0;
-      margin: 0;
-    }
-
-    ion-chip {
-      --background: #edf2f7;
-      font-size: 0.7rem;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 40px 20px;
-      background: white;
-      border-radius: 12px;
-    }
-
-    .empty-state ion-icon {
-      font-size: 3rem;
-      color: #cbd5e0;
-      margin-bottom: 12px;
-    }
-
-    .empty-state p {
-      color: #718096;
-      margin: 0 0 4px;
-    }
-
-    .empty-state small {
-      color: #a0aec0;
-    }
-
-    .yearly-stats {
-      background: white;
-      border-radius: 16px;
-      padding: 16px;
-      margin: 0 16px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    }
-
-    .section-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 1rem;
-      font-weight: 600;
-      color: #1a365d;
-      margin: 0 0 16px 0;
-    }
-
-    .yearly-stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-    }
-
-    .yearly-stat {
-      text-align: center;
-    }
-
-    .yearly-value {
-      display: block;
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: #1a365d;
-      margin-bottom: 4px;
-    }
-
-    .yearly-label {
-      font-size: 0.75rem;
-      color: #718096;
-    }
-  `]
+  templateUrl: './dashboard.page.html',
+  styleUrl: './dashboard.page.scss'
 })
 export class DashboardPage implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('chartCanvas') chartCanvas!: ElementRef<HTMLCanvasElement>;
@@ -526,7 +96,26 @@ export class DashboardPage implements OnInit, OnDestroy, AfterViewInit {
   recentTrips: Trip[] = [];
   dailyMileage: DailyMileage[] = [];
   isLoading = true;
-  isTrackingActive = false;
+  isTrackingActive = true; // Demo: set to true to show tracking widget
+
+  // Datos de demostración para el widget estilo Uber
+  demoTrip: Trip = {
+    id: 'demo-1',
+    userId: 'user-1',
+    startTime: new Date().toISOString(),
+    endTime: new Date(new Date().getTime() + 25 * 60000).toISOString(),
+    status: 'completed',
+    purpose: 'business',
+    distanceMiles: 8.52,
+    distanceKm: 13.71,
+    durationSeconds: 1543,
+    startLocation: { latitude: 37.7749, longitude: -122.4194, timestamp: Date.now() },
+    startAddress: '123 Market St, San Francisco, CA',
+    endAddress: '456 Tech Park Blvd, Palo Alto, CA',
+    route: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
 
   constructor() {
     addIcons({
@@ -537,9 +126,12 @@ export class DashboardPage implements OnInit, OnDestroy, AfterViewInit {
       navigateOutline,
       chevronForwardOutline,
       calendarOutline,
-      speedometerOutline
+      speedometerOutline,
+      searchOutline,
+      notificationsOutline
     });
   }
+
 
   ngOnInit(): void {
     this.loadData();
@@ -592,6 +184,27 @@ export class DashboardPage implements OnInit, OnDestroy, AfterViewInit {
 
       // Cargar recorridos recientes
       this.recentTrips = this.tripService.getRecentTrips();
+
+      // DEMO DATA: Mock para visualizar el widget estilo Uber si no hay datos
+      if (this.recentTrips.length === 0) {
+        this.recentTrips = [{
+          id: 'demo-1',
+          userId: 'user-1',
+          startTime: new Date().toISOString(),
+          endTime: new Date(new Date().getTime() + 25 * 60000).toISOString(), // +25 mins
+          status: 'completed',
+          purpose: 'business',
+          distanceMiles: 8.5,
+          distanceKm: 13.6,
+          durationSeconds: 1500, // 25 min
+          startLocation: { latitude: 0, longitude: 0, timestamp: Date.now() },
+          startAddress: '123 Market St, San Francisco',
+          endAddress: '456 Tech Park, Palo Alto',
+          route: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }];
+      }
 
       // Cargar millas diarias
       const dailyData = await this.tripService.getDailyMileage(7).toPromise();
@@ -739,7 +352,7 @@ export class DashboardPage implements OnInit, OnDestroy, AfterViewInit {
   formatDuration(seconds: number): string {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }

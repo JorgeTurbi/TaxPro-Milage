@@ -1,0 +1,199 @@
+<ion-header>
+    <ion-toolbar color="primary">
+        <ion-title>Mi Perfil</ion-title>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+    <!-- Sección de Usuario -->
+    <div class="profile-header">
+        <div class="avatar-container" (click)="changeProfilePhoto()">
+            <ion-avatar class="profile-avatar">
+                <img [src]="profilePhoto || defaultAvatar" alt="Perfil" />
+            </ion-avatar>
+            <div class="avatar-edit-badge">
+                <ion-icon name="camera-outline"></ion-icon>
+            </div>
+        </div>
+        <h2 class="user-name">{{ user?.firstName }} {{ user?.lastName }}</h2>
+        <p class="user-email">{{ user?.email }}</p>
+    </div>
+
+    <!-- Vehículos -->
+    <ion-card>
+        <ion-card-header>
+            <ion-card-title>
+                <ion-icon name="car-outline"></ion-icon>
+                Mis Vehículos
+            </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <!-- Lista de vehículos -->
+            @if (vehicles.length > 0) {
+            @for (vehicle of vehicles; track vehicle.id) {
+            <div class="vehicle-card" [class.default]="vehicle.isDefault">
+                <div class="vehicle-photo" (click)="changeVehiclePhoto(vehicle)">
+                    @if (vehicle.photo) {
+                    <img [src]="vehicle.photo" alt="Vehículo" />
+                    } @else {
+                    <ion-icon name="car-outline"></ion-icon>
+                    }
+                    <div class="photo-edit">
+                        <ion-icon name="camera-outline"></ion-icon>
+                    </div>
+                </div>
+                <div class="vehicle-info">
+                    <div class="vehicle-plate">{{ vehicle.plate }}</div>
+                    <div class="vehicle-details">
+                        @if (vehicle.make || vehicle.model) {
+                        <span>{{ vehicle.make }} {{ vehicle.model }}</span>
+                        }
+                        @if (vehicle.year) {
+                        <span> ({{ vehicle.year }})</span>
+                        }
+                    </div>
+                    <div class="vehicle-mileage">
+                        <ion-icon name="speedometer-outline"></ion-icon>
+                        {{ vehicle.currentMileage | number:'1.0-0' }} millas
+                    </div>
+                </div>
+                <div class="vehicle-actions">
+                    @if (vehicle.isDefault) {
+                    <ion-chip color="primary">Activo</ion-chip>
+                    } @else {
+                    <ion-button fill="clear" size="small" (click)="setDefaultVehicle(vehicle)">
+                        Usar
+                    </ion-button>
+                    }
+                    <ion-button fill="clear" size="small" (click)="editVehicle(vehicle)">
+                        <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+                    </ion-button>
+                    <ion-button fill="clear" size="small" color="danger" (click)="deleteVehicle(vehicle)">
+                        <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                    </ion-button>
+                </div>
+            </div>
+            }
+            } @else {
+            <div class="empty-vehicles">
+                <ion-icon name="car-outline"></ion-icon>
+                <p>No hay vehículos registrados</p>
+                <p class="hint">Agregar un vehículo es opcional</p>
+            </div>
+            }
+
+            <ion-button expand="block" fill="outline" (click)="addVehicle()">
+                <ion-icon name="add-outline" slot="start"></ion-icon>
+                Agregar Vehículo (Opcional)
+            </ion-button>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Configuración de Tracking -->
+    <ion-card>
+        <ion-card-header>
+            <ion-card-title>
+                <ion-icon name="settings-outline"></ion-icon>
+                Configuración de Tracking
+            </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <ion-list lines="none">
+                <!-- Auto-stop -->
+                <ion-item>
+                    <ion-icon name="time-outline" slot="start" color="primary"></ion-icon>
+                    <ion-label>
+                        <h3>Tiempo de Auto-Stop</h3>
+                        <p>Finalizar viaje después de estar detenido</p>
+                    </ion-label>
+                    <ion-select [(ngModel)]="autoStopMinutes" (ionChange)="saveAutoStopSetting()" interface="popover">
+                        <ion-select-option [value]="2">2 minutos</ion-select-option>
+                        <ion-select-option [value]="5">5 minutos</ion-select-option>
+                        <ion-select-option [value]="10">10 minutos</ion-select-option>
+                        <ion-select-option [value]="15">15 minutos</ion-select-option>
+                        <ion-select-option [value]="30">30 minutos</ion-select-option>
+                        <ion-select-option [value]="60">1 hora</ion-select-option>
+                        <ion-select-option [value]="0">Desactivado (manual)</ion-select-option>
+                    </ion-select>
+                </ion-item>
+
+                <!-- Detección de conducción -->
+                <ion-item>
+                    <ion-icon name="car-outline" slot="start" color="primary"></ion-icon>
+                    <ion-label>
+                        <h3>Detectar Conducción</h3>
+                        <p>Preguntar si iniciar tracking al detectar movimiento</p>
+                    </ion-label>
+                    <ion-toggle [(ngModel)]="drivingDetectionEnabled"
+                        (ionChange)="saveDrivingDetectionSetting()"></ion-toggle>
+                </ion-item>
+
+                <!-- Propósito por defecto -->
+                <ion-item>
+                    <ion-icon name="briefcase-outline" slot="start" color="primary"></ion-icon>
+                    <ion-label>
+                        <h3>Propósito por Defecto</h3>
+                        <p>Para nuevos viajes</p>
+                    </ion-label>
+                    <ion-select [(ngModel)]="defaultPurpose" (ionChange)="saveDefaultPurpose()" interface="popover">
+                        <ion-select-option value="business">Negocios</ion-select-option>
+                        <ion-select-option value="medical">Médico</ion-select-option>
+                        <ion-select-option value="charity">Caridad</ion-select-option>
+                        <ion-select-option value="moving">Mudanza</ion-select-option>
+                        <ion-select-option value="personal">Personal</ion-select-option>
+                    </ion-select>
+                </ion-item>
+            </ion-list>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Seguridad -->
+    <ion-card>
+        <ion-card-header>
+            <ion-card-title>
+                <ion-icon name="shield-checkmark-outline"></ion-icon>
+                Seguridad
+            </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <ion-list lines="none">
+                <ion-item>
+                    <ion-icon name="finger-print-outline" slot="start" color="primary"></ion-icon>
+                    <ion-label>
+                        <h3>Login Biométrico</h3>
+                        <p>Usar huella o Face ID</p>
+                    </ion-label>
+                    <ion-toggle [(ngModel)]="biometricEnabled" (ionChange)="toggleBiometric()"></ion-toggle>
+                </ion-item>
+            </ion-list>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Información -->
+    <ion-card>
+        <ion-card-header>
+            <ion-card-title>
+                <ion-icon name="information-circle-outline"></ion-icon>
+                Información
+            </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <ion-list lines="none">
+                <ion-item>
+                    <ion-label>Tarifa IRS por Milla</ion-label>
+                    <ion-note slot="end">\${{ mileageRate }}/milla</ion-note>
+                </ion-item>
+                <ion-item>
+                    <ion-label>Versión de la App</ion-label>
+                    <ion-note slot="end">{{ appVersion }}</ion-note>
+                </ion-item>
+            </ion-list>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Cerrar Sesión -->
+    <ion-button expand="block" color="danger" fill="outline" (click)="logout()" class="logout-btn">
+        <ion-icon name="log-out-outline" slot="start"></ion-icon>
+        Cerrar Sesión
+    </ion-button>
+</ion-content>

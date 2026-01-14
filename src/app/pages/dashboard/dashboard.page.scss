@@ -1,0 +1,748 @@
+/* ==============================================
+   NEW LIGHT DASHBOARD HEADER
+   ============================================== */
+.dashboard-header-light {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 20px 20px 20px;
+  /* Slight padding adjust */
+  background: #1e3a8a;
+  /* Blue to Green gradient */
+  margin-bottom: 20px;
+  border-radius: 0 0 30px 30px;
+  /* Optional: adding curve at bottom for better look */
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-greeting {
+  display: flex;
+  flex-direction: column;
+}
+
+.greeting-text {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  font-weight: 500;
+}
+
+.user-name-light {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  display: block;
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+}
+
+.header-right {
+  display: flex;
+  gap: 8px;
+}
+
+.header-action-btn {
+  --padding-start: 0;
+  --padding-end: 0;
+  --border-radius: 0;
+  width: auto;
+  height: auto;
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: none;
+
+  ion-icon {
+    font-size: 1.8rem;
+    color: #ffffff;
+  }
+}
+
+/* ==============================================
+   BUDGET CARD - PREMIUM WIDGET
+   ============================================== */
+.budget-card-container {
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+
+.budget-card {
+  background: #f8fafc;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decoración de billetes */
+.money-decoration {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 120px;
+  height: 100px;
+  transform: rotate(15deg);
+  z-index: 1;
+}
+
+.bill {
+  position: absolute;
+  width: 80px;
+  height: 50px;
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 50%, #9ca3af 100%);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 12px;
+}
+
+.bill-symbol {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: rgba(100, 116, 139, 0.6);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+.bill-1 {
+  top: 35px;
+  right: 20px;
+  transform: rotate(-5deg);
+  z-index: 3;
+}
+
+.bill-2 {
+  top: 25px;
+  right: 35px;
+  transform: rotate(10deg);
+  z-index: 2;
+}
+
+.bill-3 {
+  top: 15px;
+  right: 50px;
+  transform: rotate(-15deg);
+  z-index: 1;
+  opacity: 0.7;
+}
+
+/* Contenido del presupuesto */
+.budget-content {
+  position: relative;
+  z-index: 2;
+  margin-bottom: 20px;
+}
+
+.budget-label {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.budget-value {
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 8px 0 12px 0;
+  letter-spacing: -2px;
+  line-height: 1;
+}
+
+.budget-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f1f5f9;
+  padding: 10px 16px;
+  border-radius: 24px;
+  font-size: 1.1rem;
+  font-weight: 700;
+
+  &.positive {
+    color: #1e293b;
+
+    ion-icon {
+      color: #10b981;
+      font-size: 1.2rem;
+    }
+  }
+
+  &.negative {
+    color: #ef4444;
+  }
+}
+
+/* Gráfico de área */
+.budget-chart-area {
+  position: relative;
+  height: 120px;
+  margin: 0 -24px;
+  margin-bottom: -10px;
+}
+
+.area-chart-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.chart-line {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chart-tooltip {
+  position: absolute;
+  top: 10px;
+  left: 58%;
+  transform: translateX(-50%);
+  background: #3b82f6;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  z-index: 10;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid #3b82f6;
+  }
+}
+
+/* Efecto de sparkles/estrellas en el gráfico */
+.chart-sparkles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.sparkle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: rgba(59, 130, 246, 0.5);
+  border-radius: 50%;
+  animation: sparkle-float 3s ease-in-out infinite;
+
+  &:nth-child(1) {
+    top: 40%;
+    left: 15%;
+    animation-delay: 0s;
+  }
+
+  &:nth-child(2) {
+    top: 55%;
+    left: 35%;
+    animation-delay: 0.5s;
+  }
+
+  &:nth-child(3) {
+    top: 30%;
+    left: 55%;
+    animation-delay: 1s;
+  }
+
+  &:nth-child(4) {
+    top: 50%;
+    left: 75%;
+    animation-delay: 1.5s;
+  }
+
+  &:nth-child(5) {
+    top: 35%;
+    left: 90%;
+    animation-delay: 2s;
+  }
+}
+
+@keyframes sparkle-float {
+
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-10px) scale(1.5);
+  }
+}
+
+/* Días de la semana */
+.week-days {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 24px;
+  margin-top: 10px;
+
+  span {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 500;
+  }
+}
+
+/* ==============================================
+   MINI STATS GRID
+   ============================================== */
+.stats-grid-mini {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+
+.mini-stat-card {
+  background: #e0f2fe;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.mini-stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.mini-stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.mini-stat-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.mini-stat-icon {
+  width: 44px;
+  height: 44px;
+  background: rgba(30, 41, 59, 0.08);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  ion-icon {
+    font-size: 1.4rem;
+    color: #1e3a5f;
+  }
+}
+
+.quick-action {
+  padding: 0 16px;
+  margin-bottom: 24px;
+}
+
+.btn-start-tracking {
+  --background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+  --border-radius: 16px;
+  height: 56px;
+  font-size: 1rem;
+}
+
+.chart-container {
+  background: #e0f2fe;
+  /* Azul cielo (Sky Blue) */
+  border-radius: 16px;
+  padding: 16px;
+  margin: 0 16px 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.chart-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a365d;
+  margin: 0 0 16px 0;
+}
+
+.chart-title ion-icon {
+  color: #3182ce;
+}
+
+.chart-wrapper {
+  height: 200px;
+}
+
+.recent-trips-section {
+  margin: 0 16px 24px;
+}
+
+.recent-trips-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.recent-trips-title h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a365d;
+  margin: 0;
+}
+
+.recent-trips-title a {
+  font-size: 0.875rem;
+  color: #3182ce;
+  text-decoration: none;
+}
+
+.trip-item {
+  --background: white;
+  --border-radius: 12px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.trip-icon {
+  width: 40px;
+  height: 40px;
+  background: #edf2f7;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+
+.trip-icon ion-icon {
+  font-size: 1.25rem;
+  color: #1a365d;
+}
+
+.trip-distance {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1a365d;
+  margin: 0;
+}
+
+.trip-date {
+  font-size: 0.875rem;
+  color: #718096;
+  margin: 4px 0 2px;
+}
+
+.trip-duration {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  margin: 0;
+}
+
+ion-chip {
+  --background: #edf2f7;
+  font-size: 0.7rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  background: #e0f2fe;
+  /* Azul cielo (Sky Blue) */
+  border-radius: 12px;
+}
+
+.empty-state ion-icon {
+  font-size: 3rem;
+  color: #cbd5e0;
+  margin-bottom: 12px;
+}
+
+.empty-state p {
+  color: #718096;
+  margin: 0 0 4px;
+}
+
+.empty-state small {
+  color: #a0aec0;
+}
+
+.yearly-stats {
+  background: #e0f2fe;
+  /* Azul cielo (Sky Blue) */
+  border-radius: 16px;
+  padding: 16px;
+  margin: 0 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a365d;
+  margin: 0 0 16px 0;
+}
+
+.yearly-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.yearly-stat {
+  text-align: center;
+}
+
+.yearly-value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a365d;
+  margin-bottom: 4px;
+}
+
+.yearly-label {
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+/* ==============================================
+   UBER STYLE WIDGET
+   ============================================== */
+.uber-trip-card {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  margin: 0 16px 24px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  font-family: 'Inter', sans-serif;
+  /* Assuming Inter or system font */
+}
+
+.card-header-uber {
+  margin-bottom: 20px;
+
+  .header-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+  }
+
+  .active-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #d1fae5;
+    color: #065f46;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+
+    ion-icon {
+      font-size: 0.9rem;
+      animation: pulse 2s ease-in-out infinite;
+    }
+  }
+
+  .tracking-stats-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: #4b5563;
+    font-weight: 600;
+
+    ion-icon {
+      font-size: 1.1rem;
+      color: #6b7280;
+    }
+  }
+
+  .trip-subtext {
+    font-size: 0.85rem;
+    color: #9ca3af;
+    margin: 0;
+  }
+}
+
+.card-body-uber {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 16px;
+}
+
+.timeline-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  /* Valid for separating start/end */
+  position: relative;
+  padding-left: 20px;
+  /* Space for the line */
+  flex: 1;
+}
+
+.timeline-line {
+  position: absolute;
+  left: 5px;
+  /* Centers line with the 10px dots */
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: #3b82f6;
+  /* Blue line */
+  z-index: 0;
+}
+
+.timeline-point {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 20px;
+
+  &.end {
+    margin-bottom: 0;
+  }
+
+  /* The Dot */
+  &::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    /* Adjust based on padding-left */
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10px;
+    height: 10px;
+    background: #3b82f6;
+    /* Blue dot */
+    border-radius: 2px;
+    /* Square with slight roundness like Uber */
+    box-shadow: 0 0 0 2px white;
+    /* Spacer */
+  }
+
+  .time-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 2px;
+  }
+
+  .address-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+  }
+}
+
+.map-visual {
+  width: 100px;
+  background: #f8fafc;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  position: relative;
+  overflow: hidden;
+
+  /* Optional simple grid pattern */
+  background-image: linear-gradient(#e2e8f0 1px, transparent 1px),
+    linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
+  background-size: 20px 20px;
+
+  /* Difuminado en los bordes */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    background: radial-gradient(ellipse at center, transparent 20%, rgba(248, 250, 252, 0.95) 85%);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .map-path-svg {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: 1;
+
+    svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3));
+    }
+  }
+}
+
+/* Active tracking styles */
+.timeline-line.active-line {
+  background: #10b981;
+  /* Green for active tracking */
+}
+
+.timeline-point.active-point::before {
+  background: #10b981;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+
+.pulse-dot {
+  animation: pulse 2s ease-in-out infinite;
+}

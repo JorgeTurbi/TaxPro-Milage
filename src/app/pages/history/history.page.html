@@ -1,0 +1,235 @@
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<ion-header>
+    <ion-toolbar color="primary">
+        <ion-title>
+            <ion-icon name="calendar-outline" class="header-icon"></ion-icon>
+            Historial
+        </ion-title>
+        <ion-buttons slot="end">
+            <ion-button (click)="toggleFilters()">
+                <ion-icon name="filter-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+        </ion-buttons>
+    </ion-toolbar>
+
+    <!-- Barra de búsqueda -->
+    <ion-toolbar color="primary">
+        <ion-searchbar [(ngModel)]="searchQuery" placeholder="Buscar viajes..." [debounce]="300"
+            (ionInput)="onSearchChange()" animated>
+        </ion-searchbar>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content class="history-content">
+    <!-- Pull to refresh -->
+    <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+        <ion-refresher-content pullingIcon="chevron-down-circle-outline">
+        </ion-refresher-content>
+    </ion-refresher>
+
+
+    <!-- ============================================================
+       PANEL DE FILTROS (Colapsable)
+       ============================================================ -->
+    @if (showFilters()) {
+    <div class="filters-panel">
+        <!-- Selector de rango de fechas -->
+        <div class="date-range-selector">
+            <div class="date-field">
+                <label>Desde:</label>
+                <ion-datetime-button datetime="startDate"></ion-datetime-button>
+                <ion-modal [keepContentsMounted]="true">
+                    <ng-template>
+                        <ion-datetime id="startDate" [(ngModel)]="startDate" presentation="date" [max]="today"
+                            (ionChange)="onDateChange()">
+                        </ion-datetime>
+                    </ng-template>
+                </ion-modal>
+            </div>
+
+            <div class="date-field">
+                <label>Hasta:</label>
+                <ion-datetime-button datetime="endDate"></ion-datetime-button>
+                <ion-modal [keepContentsMounted]="true">
+                    <ng-template>
+                        <ion-datetime id="endDate" [(ngModel)]="endDate" presentation="date" [max]="today"
+                            (ionChange)="onDateChange()">
+                        </ion-datetime>
+                    </ng-template>
+                </ion-modal>
+            </div>
+        </div>
+
+        <!-- Filtros rápidos de fecha -->
+        <div class="quick-filters">
+            <ion-chip [outline]="!isQuickFilterActive('today')"
+                [color]="isQuickFilterActive('today') ? 'primary' : 'medium'" (click)="setQuickFilter('today')">
+                Hoy
+            </ion-chip>
+            <ion-chip [outline]="!isQuickFilterActive('week')"
+                [color]="isQuickFilterActive('week') ? 'primary' : 'medium'" (click)="setQuickFilter('week')">
+                7 días
+            </ion-chip>
+            <ion-chip [outline]="!isQuickFilterActive('month')"
+                [color]="isQuickFilterActive('month') ? 'primary' : 'medium'" (click)="setQuickFilter('month')">
+                Este mes
+            </ion-chip>
+            <ion-chip [outline]="!isQuickFilterActive('all')"
+                [color]="isQuickFilterActive('all') ? 'primary' : 'medium'" (click)="setQuickFilter('all')">
+                Todo
+            </ion-chip>
+        </div>
+
+        <!-- Filtro por propósito -->
+        <div class="purpose-filter">
+            <label>Propósito:</label>
+            <ion-segment [(ngModel)]="selectedPurpose" (ionChange)="onPurposeChange()">
+                <ion-segment-button value="all">
+                    <ion-label>Todos</ion-label>
+                </ion-segment-button>
+                <ion-segment-button value="business">
+                    <ion-icon name="briefcase-outline"></ion-icon>
+                </ion-segment-button>
+                <ion-segment-button value="medical">
+                    <ion-icon name="medkit-outline"></ion-icon>
+                </ion-segment-button>
+                <ion-segment-button value="charity">
+                    <ion-icon name="heart-outline"></ion-icon>
+                </ion-segment-button>
+                <ion-segment-button value="moving">
+                    <ion-icon name="home-outline"></ion-icon>
+                </ion-segment-button>
+            </ion-segment>
+        </div>
+    </div>
+    }
+
+    <!-- ============================================================
+       RESUMEN DEL PERÍODO
+       ============================================================ -->
+    <div class="period-summary">
+        <div class="summary-item">
+            <ion-icon name="navigate-outline" color="primary"></ion-icon>
+            <div class="summary-info">
+                <span class="summary-value">{{ totalMiles().toFixed(1) }}</span>
+                <span class="summary-label">Millas</span>
+            </div>
+        </div>
+
+        <div class="summary-item">
+            <ion-icon name="car-sport-outline" color="secondary"></ion-icon>
+            <div class="summary-info">
+                <span class="summary-value">{{ filteredTrips().length }}</span>
+                <span class="summary-label">Viajes</span>
+            </div>
+        </div>
+
+        <div class="summary-item">
+            <ion-icon name="cash-outline" color="success"></ion-icon>
+            <div class="summary-info">
+                <span class="summary-value">\${{ totalDeduction().toFixed(2) }}</span>
+                <span class="summary-label">Deducción</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+       LISTA DE VIAJES
+       ============================================================ -->
+    @if (isLoading()) {
+    <!-- Skeleton loading -->
+    <div class="trips-loading">
+        @for (i of [1, 2, 3, 4, 5]; track i) {
+        <ion-card class="trip-card skeleton">
+            <ion-card-content>
+                <div class="skeleton-row">
+                    <ion-skeleton-text [animated]="true" style="width: 30%"></ion-skeleton-text>
+                    <ion-skeleton-text [animated]="true" style="width: 20%"></ion-skeleton-text>
+                </div>
+                <ion-skeleton-text [animated]="true" style="width: 60%; height: 20px"></ion-skeleton-text>
+                <div class="skeleton-row">
+                    <ion-skeleton-text [animated]="true" style="width: 25%"></ion-skeleton-text>
+                    <ion-skeleton-text [animated]="true" style="width: 25%"></ion-skeleton-text>
+                </div>
+            </ion-card-content>
+        </ion-card>
+        }
+    </div>
+    } @else if (filteredTrips().length === 0) {
+    <!-- Estado vacío -->
+    <div class="empty-state">
+        <ion-icon name="car-sport-outline"></ion-icon>
+        <h3>No hay viajes</h3>
+        <p>No se encontraron viajes para los filtros seleccionados.</p>
+        <ion-button fill="outline" (click)="resetFilters()">
+            Limpiar filtros
+        </ion-button>
+    </div>
+    } @else {
+    <!-- Lista de viajes -->
+    <ion-list class="trips-list">
+        @for (trip of filteredTrips(); track trip.id) {
+        <ion-item-sliding>
+            <ion-item class="trip-item" [button]="true" (click)="viewTripDetail(trip)" [detail]="true">
+
+                <!-- Icono del propósito -->
+                <div class="trip-purpose-icon" slot="start" [ngClass]="'purpose-' + trip.purpose">
+                    <ion-icon [name]="getPurposeIcon(trip.purpose)"></ion-icon>
+                </div>
+
+                <ion-label>
+                    <!-- Fecha y hora -->
+                    <h2 class="trip-date">
+                        {{ formatDate(trip.startTime) }}
+                        <ion-badge [color]="getStatusColor(trip.status)" class="status-badge">
+                            {{ getStatusLabel(trip.status) }}
+                        </ion-badge>
+                    </h2>
+
+                    <!-- Distancia y duración -->
+                    <div class="trip-stats">
+                        <span class="stat">
+                            <ion-icon name="navigate-outline"></ion-icon>
+                            {{ trip.distanceMiles.toFixed(2) }} mi
+                        </span>
+                        <span class="stat">
+                            <ion-icon name="time-outline"></ion-icon>
+                            {{ formatDuration(trip.durationSeconds || 0) }}
+                        </span>
+                        <span class="stat deduction">
+                            <ion-icon name="cash-outline"></ion-icon>
+                            \${{ calculateTripDeduction(trip.distanceMiles || 0) }}
+                        </span>
+                    </div>
+
+                    <!-- Propósito -->
+                    <ion-note color="medium">
+                        {{ getPurposeLabel(trip.purpose) }}
+                    </ion-note>
+                </ion-label>
+
+            </ion-item>
+
+            <!-- Opciones de deslizamiento -->
+            <ion-item-options side="end">
+                <ion-item-option color="primary" (click)="shareTrip(trip)">
+                    <ion-icon name="share-outline" slot="icon-only"></ion-icon>
+                </ion-item-option>
+                <ion-item-option color="danger" (click)="deleteTrip(trip)">
+                    <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                </ion-item-option>
+            </ion-item-options>
+        </ion-item-sliding>
+        }
+    </ion-list>
+
+    <!-- Infinite scroll -->
+    <ion-infinite-scroll (ionInfinite)="loadMore($event)">
+        <ion-infinite-scroll-content loadingSpinner="crescent">
+        </ion-infinite-scroll-content>
+    </ion-infinite-scroll>
+    }
+
+</ion-content>

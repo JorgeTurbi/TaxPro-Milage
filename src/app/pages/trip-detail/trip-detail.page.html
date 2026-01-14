@@ -1,0 +1,219 @@
+<ion-header class="ion-no-border">
+    <ion-toolbar color="primary">
+        <ion-buttons slot="start">
+            <ion-back-button defaultHref="/tabs/history" text=""></ion-back-button>
+        </ion-buttons>
+        <ion-title>Detalle del Viaje</ion-title>
+        <ion-buttons slot="end">
+            <ion-button (click)="showActions()" [disabled]="!trip">
+                <ion-icon name="ellipsis-vertical"></ion-icon>
+            </ion-button>
+        </ion-buttons>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content>
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading-container">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p>Cargando viaje...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error && !isLoading" class="error-container">
+        <ion-icon name="alert-circle-outline" color="danger"></ion-icon>
+        <h3>Error al cargar</h3>
+        <p>{{ error }}</p>
+        <ion-button fill="outline" (click)="loadTrip()">
+            Reintentar
+        </ion-button>
+    </div>
+
+    <!-- Trip Content -->
+    <div *ngIf="trip && !isLoading" class="trip-content">
+        <!-- Mapa con Ruta -->
+        <div class="map-container">
+            <div #mapElement class="map"></div>
+            <div *ngIf="!mapLoaded" class="map-placeholder">
+                <ion-icon name="map-outline"></ion-icon>
+                <p>Cargando mapa...</p>
+            </div>
+        </div>
+
+        <!-- Resumen Principal -->
+        <ion-card class="summary-card">
+            <ion-card-content>
+                <div class="summary-header">
+                    <ion-chip [color]="getPurposeColor(trip.purpose)">
+                        {{ getPurposeLabel(trip.purpose) }}
+                    </ion-chip>
+                    <span class="trip-date">
+                        {{ formatDate(trip.startTime) }}
+                    </span>
+                </div>
+
+                <div class="main-stats">
+                    <div class="stat-item">
+                        <span class="stat-value">{{ formatDurationShort(trip.durationSeconds) }}</span>
+                        <span class="stat-label">duración</span>
+                    </div>
+                    <div class="stat-item primary">
+                        <span class="stat-value">{{ trip.distanceMiles | number:'1.2-2' }}</span>
+                        <span class="stat-label">millas</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-value">{{ formatDurationShort(trip.durationSeconds) }}</span>
+                        <span class="stat-label">duración</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item highlight">
+                        <span class="stat-value">${{ calculateDeduction() | number:'1.2-2' }}</span>
+                        <span class="stat-label">deducción</span>
+                    </div>
+                </div>
+            </ion-card-content>
+        </ion-card>
+
+        <!-- Detalles de la Ruta -->
+        <ion-card>
+            <ion-card-header>
+                <ion-card-title>
+                    <ion-icon name="navigate-outline"></ion-icon>
+                    Ruta
+                </ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+                <div class="route-points">
+                    <div class="route-point start">
+                        <div class="point-marker start"></div>
+                        <div class="point-info">
+                            <span class="point-label">Inicio</span>
+                            <span class="point-time">{{ formatTime(trip.startTime) }}</span>
+                            <span class="point-address" *ngIf="startAddress">{{ startAddress }}</span>
+                        </div>
+                    </div>
+
+                    <div class="route-line"></div>
+
+                    <div class="route-point end">
+                        <div class="point-marker end"></div>
+                        <div class="point-info">
+                            <span class="point-label">Fin</span>
+                            <span class="point-time">{{ formatTime(trip.endTime) }}</span>
+                            <span class="point-address" *ngIf="endAddress">{{ endAddress }}</span>
+                        </div>
+                    </div>
+                </div>
+            </ion-card-content>
+        </ion-card>
+
+        <!-- Estadísticas Detalladas -->
+        <ion-card>
+            <ion-card-header>
+                <ion-card-title>
+                    <ion-icon name="analytics-outline"></ion-icon>
+                    Estadísticas
+                </ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+                <ion-grid>
+                    <ion-row>
+                        <ion-col size="6">
+                            <div class="detail-stat">
+                                <ion-icon name="speedometer-outline" color="primary"></ion-icon>
+                                <div class="detail-info">
+                                    <span class="detail-value">{{ trip.averageSpeedMph || 0 | number:'1.1-1' }}
+                                        mph</span>
+                                    <span class="detail-label">Velocidad promedio</span>
+                                </div>
+                            </div>
+                        </ion-col>
+                        <ion-col size="6">
+                            <div class="detail-stat">
+                                <ion-icon name="speedometer-outline" color="danger"></ion-icon>
+                                <div class="detail-info">
+                                    <span class="detail-value">{{ trip.maxSpeedMph || 0 | number:'1.1-1' }} mph</span>
+                                    <span class="detail-label">Velocidad máxima</span>
+                                </div>
+                            </div>
+                        </ion-col>
+                    </ion-row>
+                    <ion-row>
+                        <ion-col size="6">
+                            <div class="detail-stat">
+                                <ion-icon name="location-outline" color="secondary"></ion-icon>
+                                <div class="detail-info">
+                                    <span class="detail-value">{{ (trip.route || []).length }}</span>
+                                    <span class="detail-label">Puntos GPS</span>
+                                </div>
+                            </div>
+                        </ion-col>
+                        <ion-col size="6">
+                            <div class="detail-stat">
+                                <ion-icon name="navigate-outline" color="tertiary"></ion-icon>
+                                <div class="detail-info">
+                                    <span class="detail-value">{{ (trip.distanceMiles * 1.60934) | number:'1.2-2' }}
+                                        km</span>
+                                    <span class="detail-label">Distancia (km)</span>
+                                </div>
+                            </div>
+                        </ion-col>
+                    </ion-row>
+                </ion-grid>
+            </ion-card-content>
+        </ion-card>
+
+        <!-- Editar Propósito -->
+        <ion-card *ngIf="isEditing">
+            <ion-card-header>
+                <ion-card-title>
+                    <ion-icon name="create-outline"></ion-icon>
+                    Editar Viaje
+                </ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+                <ion-list>
+                    <ion-item>
+                        <ion-label position="stacked">Propósito</ion-label>
+                        <ion-select [(ngModel)]="editPurpose" interface="popover">
+                            <ion-select-option value="business">Negocios</ion-select-option>
+                            <ion-select-option value="medical">Médico</ion-select-option>
+                            <ion-select-option value="charity">Caridad</ion-select-option>
+                            <ion-select-option value="moving">Mudanza</ion-select-option>
+                            <ion-select-option value="personal">Personal</ion-select-option>
+                        </ion-select>
+                    </ion-item>
+                    <ion-item>
+                        <ion-label position="stacked">Notas</ion-label>
+                        <ion-textarea [(ngModel)]="editNotes" placeholder="Agregar notas sobre este viaje..."
+                            [rows]="3">
+                        </ion-textarea>
+                    </ion-item>
+                </ion-list>
+                <div class="edit-actions">
+                    <ion-button fill="outline" (click)="cancelEdit()">
+                        <ion-icon name="close-outline" slot="start"></ion-icon>
+                        Cancelar
+                    </ion-button>
+                    <ion-button (click)="saveChanges()" [disabled]="isSaving">
+                        <ion-icon name="checkmark-outline" slot="start"></ion-icon>
+                        {{ isSaving ? 'Guardando...' : 'Guardar' }}
+                    </ion-button>
+                </div>
+            </ion-card-content>
+        </ion-card>
+
+        <!-- Acciones Rápidas -->
+        <div class="quick-actions" *ngIf="!isEditing">
+            <ion-button fill="outline" (click)="startEdit()">
+                <ion-icon name="create-outline" slot="start"></ion-icon>
+                Editar
+            </ion-button>
+            <ion-button fill="outline" (click)="shareTrip()">
+                <ion-icon name="share-outline" slot="start"></ion-icon>
+                Compartir
+            </ion-button>
+        </div>
+    </div>
+</ion-content>

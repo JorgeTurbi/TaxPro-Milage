@@ -1,0 +1,238 @@
+/* ============================================================
+   MODERN GLASSMORPHIC TAB BAR - IONIC COMPATIBLE
+   ============================================================ */
+
+ion-tab-bar {
+    position: absolute;
+    bottom: 24px;
+    left: 20px;
+    right: 20px;
+    height: 65px;
+    /* Remove standard border radius here as ::before handles shape */
+    margin: 0 auto;
+    max-width: 420px;
+
+    /* Layout */
+    padding: 0 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    /* No direct background - handled by pseudo */
+    background: transparent;
+    border: none !important;
+
+    /* CRITICAL: Allow buttons/shadows to extend outside */
+    overflow: visible !important;
+    contain: none !important;
+
+    z-index: 1000;
+
+    /* Reset defaults */
+    --background: transparent;
+    --border: none;
+
+    /* Removed filter from here to avoid shadowing icons */
+}
+
+/* Glassmorphic Shape with Notch */
+ion-tab-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    background: rgba(239, 246, 255, 0.95);
+    /* Light blue */
+    /* High opacity for clean look */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+
+    border-radius: 40px;
+    z-index: -1;
+
+    /* THE CURVE / NOTCH */
+    /* Fluid SVG Mask for rounded corners */
+    /* SVG path creates a bridge with a smooth hole */
+    $fluid-notch: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 80'%3E%3Cpath d='M0 0h35c10 0 18 5 21 16a40 40 0 0 0 48 0c3-11 11-16 21-16h35v80H0z' fill='%23000'/%3E%3C/svg%3E";
+
+    -webkit-mask-image:
+        url($fluid-notch),
+        linear-gradient(to right, #000 calc(50% - 48px), transparent calc(50% - 48px), transparent calc(50% + 48px), #000 calc(50% + 48px));
+    mask-image:
+        url($fluid-notch),
+        linear-gradient(to right, #000 calc(50% - 48px), transparent calc(50% - 48px), transparent calc(50% + 48px), #000 calc(50% + 48px));
+
+    -webkit-mask-size: 160px 100%, 100% 100%;
+    mask-size: 160px 100%, 100% 100%;
+
+    -webkit-mask-position: center top, left top;
+    mask-position: center top, left top;
+
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+
+    /* Composite 'add' ensures the pieces stitch together */
+    -webkit-mask-composite: source-over;
+    mask-composite: add;
+
+    /* Optional: Subtle border feeling using inset shadow or explicit border won't work easily with mask, 
+       so rely on drop-shadow filter on parent for depth */
+    /* Drop shadow applied here to follow the mask shape */
+    filter: drop-shadow(0 25px 45px rgba(0, 0, 0, 0.5)) drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
+}
+
+/* ============================================================
+   NAV ITEMS
+   ============================================================ */
+
+ion-tab-button {
+    --background: transparent !important;
+    --background-focused: transparent !important;
+    --background-hover: transparent !important;
+    --color: #94a3b8 !important;
+    --color-selected: #3b82f6 !important;
+    /* Blue active */
+    --ripple-color: transparent !important;
+    background: transparent !important;
+
+    min-width: 50px;
+    max-width: none;
+    height: 100%;
+    padding: 5px 0 0 0 !important;
+
+    /* Flex behavior */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    /* CRITICAL FIX FOR CLIPPING */
+    overflow: visible !important;
+    position: relative;
+    z-index: 1;
+}
+
+/* Ensure shadow DOM native part isn't clipping */
+ion-tab-button::part(native) {
+    overflow: visible !important;
+    padding: 0 !important;
+}
+
+/* Icons */
+ion-tab-button ion-icon,
+ion-tab-button i {
+    font-size: 20px !important;
+    /* Era 20px */
+    color: #94a3b8;
+    margin-bottom: 3px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Background circle for icon */
+    width: 35px;
+    /* Increased from 30px */
+    height: 35px;
+    /* Increased from 30px */
+    line-height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* Labels */
+ion-tab-button ion-label {
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    color: #94a3b8 !important;
+    transition: all 0.3s ease;
+    transform: scale(0.9);
+}
+
+/* ACTIVE STATE - POP UP EFFECT */
+ion-tab-button.tab-selected {
+    z-index: 100 !important;
+    /* Bring to front */
+}
+
+ion-tab-button.tab-selected ion-icon,
+ion-tab-button.tab-selected i {
+    color: #ffffff !important;
+    background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+
+    /* Pop up + 3D translate to ensure it's visually ON TOP of the bar */
+    /* Reduced translation from -20px to -8px as requested */
+    transform: translateY(-8px) scale(1.0) translateZ(50px) !important;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+}
+
+ion-tab-button.tab-selected ion-label {
+    color: #3b82f6 !important;
+    transform: translateY(-1px);
+    /* Reduced from -10px */
+    font-weight: 700 !important;
+}
+
+/* ============================================================
+   TRACKING BUTTON (CENTER)
+   ============================================================ */
+ion-tab-button[tab="tracking"] {
+    flex: 0 0 auto;
+    width: 60px;
+    position: relative;
+    overflow: visible !important;
+    z-index: 10;
+}
+
+ion-tab-button[tab="tracking"] ion-icon,
+ion-tab-button[tab="tracking"] i {
+    font-size: 24px !important;
+    /* Increased from 18px */
+    width: 44px;
+    /* Increased from 38px */
+    height: 44px;
+    /* Increased from 38px */
+    background: #ffffff;
+    /* White background for visibility */
+    border: 1px solid #e2e8f0;
+    /* Subtle border */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transform: translateY(-8px) translateZ(0);
+    color: #3b82f6;
+    /* Blue Icon */
+}
+
+/* Active Tracking Button */
+ion-tab-button[tab="tracking"].tab-selected {
+    z-index: 100 !important;
+}
+
+ion-tab-button[tab="tracking"].tab-selected ion-icon,
+ion-tab-button[tab="tracking"].tab-selected i {
+    background: #3b82f6 !important;
+    /* Simple Blue */
+    border-color: #3b82f6;
+    box-shadow: 0 6px 14px rgba(59, 130, 246, 0.4) !important;
+    /* Blue Shadow */
+    /* Reduced translation from -12px to -12px */
+    transform: translateY(-12px) scale(1.1) translateZ(50px) !important;
+    color: white !important;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 380px) {
+    ion-tab-bar {
+        left: 10px;
+        right: 10px;
+        bottom: 20px;
+        padding: 0 2px;
+    }
+}

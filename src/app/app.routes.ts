@@ -66,6 +66,12 @@ export const routes: Routes = [
         path: 'profile',
         loadComponent: () => import('./pages/profile/profile.page').then(m => m.ProfilePage),
       },
+
+      // Tab: Configuración
+      {
+        path: 'settings',
+        loadComponent: () => import('./pages/settings/settings.page').then(m => m.SettingsPage),
+      },
     ]
   },
 

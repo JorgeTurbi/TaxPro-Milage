@@ -1,0 +1,266 @@
+<ion-content [fullscreen]="true">
+    <!-- Pull to Refresh -->
+    <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+        <ion-refresher-content></ion-refresher-content>
+    </ion-refresher>
+
+    <!-- Header Personalizado (Light Theme) -->
+    <div class="dashboard-header-light">
+        <div class="header-left">
+            <div class="user-greeting">
+                <p class="greeting-text">{{ getGreeting() }}</p>
+                <h1 class="user-name-light">{{ user?.firstName || 'Usuario' }}</h1>
+            </div>
+        </div>
+        <div class="header-right">
+            <ion-button fill="clear" class="header-action-btn">
+                <ion-icon name="notifications-outline"></ion-icon>
+            </ion-button>
+        </div>
+    </div>
+
+    <!-- Widget de Presupuesto / Budget Card -->
+    <div class="budget-card-container">
+        <div class="budget-card">
+            <!-- Decoración de billetes -->
+            <div class="money-decoration">
+                <div class="bill bill-1">
+                    <span class="bill-symbol">$</span>
+                </div>
+                <div class="bill bill-2">
+                    <span class="bill-symbol">$</span>
+                </div>
+                <div class="bill bill-3">
+                    <span class="bill-symbol">$</span>
+                </div>
+            </div>
+
+            <!-- Contenido del presupuesto -->
+            <div class="budget-content">
+                <span class="budget-label">Budget</span>
+                @if (isLoading) {
+                <ion-skeleton-text [animated]="true" style="width: 150px; height: 48px;"></ion-skeleton-text>
+                } @else {
+                <h2 class="budget-value">{{ statistics?.totalDeductionAmount | currency:'USD':'symbol':'1.3-3' }}</h2>
+                }
+                <div class="budget-change positive">
+                    <span>{{ getMonthlyDeduction() | currency:'USD':'symbol':'1.0-0' }}</span>
+                </div>
+            </div>
+
+            <!-- Gráfico de área -->
+            <div class="budget-chart-area">
+                <div class="chart-tooltip">
+                    <span>$750</span>
+                </div>
+                <svg class="area-chart-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.6" />
+                            <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0.1" />
+                        </linearGradient>
+                    </defs>
+                    <!-- Área del gráfico -->
+                    <path class="chart-area"
+                        d="M0,80 C20,85 40,70 60,75 C80,80 100,60 120,55 C140,50 160,35 180,30 C200,25 220,40 240,45 C260,50 280,55 300,50 L300,100 L0,100 Z"
+                        fill="url(#areaGradient)" />
+                    <!-- Línea del gráfico -->
+                    <path class="chart-line"
+                        d="M0,80 C20,85 40,70 60,75 C80,80 100,60 120,55 C140,50 160,35 180,30 C200,25 220,40 240,45 C260,50 280,55 300,50"
+                        fill="none" stroke="#3b82f6" stroke-width="2.5" />
+                    <!-- Punto destacado -->
+                    <circle cx="180" cy="30" r="5" fill="#3b82f6" stroke="white" stroke-width="2" />
+                </svg>
+                <!-- Decoración de puntos/estrellas -->
+                <div class="chart-sparkles">
+                    <span class="sparkle"></span>
+                    <span class="sparkle"></span>
+                    <span class="sparkle"></span>
+                    <span class="sparkle"></span>
+                    <span class="sparkle"></span>
+                </div>
+            </div>
+
+            <!-- Días de la semana -->
+            <div class="week-days">
+                <span>Sun</span>
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span>Sat</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid de estadísticas secundarias -->
+    <div class="stats-grid-mini">
+        <!-- Millas este mes -->
+        <div class="mini-stat-card">
+            <div class="mini-stat-content">
+                @if (isLoading) {
+                <ion-skeleton-text [animated]="true" style="width: 60px; height: 24px;"></ion-skeleton-text>
+                } @else {
+                <div class="mini-stat-value">{{ statistics?.milesThisMonth | number:'1.1-1' }}</div>
+                }
+                <div class="mini-stat-label">Millas</div>
+            </div>
+            <div class="mini-stat-icon">
+                <ion-icon name="car-outline"></ion-icon>
+            </div>
+        </div>
+
+        <!-- Recorridos -->
+        <div class="mini-stat-card">
+            <div class="mini-stat-content">
+                @if (isLoading) {
+                <ion-skeleton-text [animated]="true" style="width: 40px; height: 24px;"></ion-skeleton-text>
+                } @else {
+                <div class="mini-stat-value">{{ statistics?.tripsThisMonth }}</div>
+                }
+                <div class="mini-stat-label">Recorridos</div>
+            </div>
+            <div class="mini-stat-icon">
+                <ion-icon name="navigate-outline"></ion-icon>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Widget Estilo Uber (Detalles del último viaje) -->
+    @if (isTrackingActive) {
+    <div class="uber-trip-card">
+        <div class="card-header-uber">
+            <div class="header-title-row">
+                <h2>Tracking Activo</h2>
+                <span class="active-badge">
+                    <ion-icon name="ellipse-outline"></ion-icon>
+                    En curso
+                </span>
+            </div>
+            <div class="tracking-stats-row">
+                <div class="stat-item">
+                    <ion-icon name="time-outline"></ion-icon>
+                    <span>{{ formatDuration(demoTrip.durationSeconds) }}</span>
+                </div>
+                <div class="stat-item">
+                    <ion-icon name="speedometer-outline"></ion-icon>
+                    <span>45 mph</span>
+                </div>
+                <div class="stat-item">
+                    <ion-icon name="navigate-outline"></ion-icon>
+                    <span>{{ demoTrip.distanceMiles | number:'1.2-2' }} mi</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body-uber">
+            <div class="timeline-container">
+                <div class="timeline-point start">
+                    <div class="time-label">{{ demoTrip.startTime | date:'h:mm a' }}</div>
+                    <div class="address-label">{{ demoTrip.startAddress || 'Ubicación de inicio' }}</div>
+                </div>
+                <div class="timeline-line active-line"></div>
+                <div class="timeline-point end active-point">
+                    <div class="time-label">Ahora</div>
+                    <div class="address-label">En movimiento...</div>
+                </div>
+            </div>
+
+            <div class="map-visual">
+                <!-- Simple CSS Map Representation -->
+                <div class="map-path-svg">
+                    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 80 C 20 50, 80 50, 80 20" stroke="#10b981" stroke-width="3" stroke-linecap="round"
+                            stroke-dasharray="4 4" />
+                        <circle cx="20" cy="80" r="4" fill="#3b82f6" />
+                        <circle cx="80" cy="20" r="6" fill="#10b981" class="pulse-dot" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+    }
+
+    <div class="chart-container">
+        <h3 class="chart-title">
+            <ion-icon name="calendar-outline"></ion-icon>
+            Millas últimos 7 días
+        </h3>
+        <div class="chart-wrapper">
+            <canvas #chartCanvas></canvas>
+        </div>
+    </div>
+
+    <!-- Recorridos recientes -->
+    <div class="recent-trips-section">
+        <div class="recent-trips-title">
+            <h3>
+                <ion-icon name="time-outline"></ion-icon>
+                Recorridos Recientes
+            </h3>
+            <a [routerLink]="['/tabs/history']">Ver todos</a>
+        </div>
+
+        <ion-list lines="none">
+            @if (isLoading) {
+            @for (i of [1, 2, 3]; track i) {
+            <ion-item class="trip-item">
+                <ion-skeleton-text [animated]="true" style="width: 100%; height: 60px;"></ion-skeleton-text>
+            </ion-item>
+            }
+            } @else if (recentTrips.length === 0) {
+            <div class="empty-state">
+                <ion-icon name="car-outline"></ion-icon>
+                <p>No hay recorridos aún</p>
+                <small>Inicia tu primer recorrido ahora</small>
+            </div>
+            } @else {
+            @for (trip of recentTrips; track trip.id) {
+            <ion-item class="trip-item" [routerLink]="['/trip', trip.id]" [detail]="true">
+                <div class="trip-icon" slot="start">
+                    <ion-icon name="car-outline"></ion-icon>
+                </div>
+                <ion-label>
+                    <h2 class="trip-distance">{{ trip.distanceMiles | number:'1.2-2' }} mi</h2>
+                    <p class="trip-date">{{ formatDate(trip.startTime) }}</p>
+                    <p class="trip-duration">{{ formatDuration(trip.durationSeconds) }}</p>
+                </ion-label>
+                <ion-chip slot="end" [color]="getPurposeColor(trip.purpose)">
+                    {{ getPurposeLabel(trip.purpose) }}
+                </ion-chip>
+            </ion-item>
+            }
+            }
+        </ion-list>
+    </div>
+
+    <!-- Estadísticas anuales -->
+    <div class="yearly-stats">
+        <h3 class="section-title">
+            <ion-icon name="speedometer-outline"></ion-icon>
+            Resumen Anual
+        </h3>
+        <div class="yearly-stats-grid">
+            <div class="yearly-stat">
+                <span class="yearly-value">{{ statistics?.totalMiles | number:'1.0-0' }}</span>
+                <span class="yearly-label">Millas totales</span>
+            </div>
+            <div class="yearly-stat">
+                <span class="yearly-value">{{ statistics?.totalTrips }}</span>
+                <span class="yearly-label">Recorridos</span>
+            </div>
+            <div class="yearly-stat">
+                <span class="yearly-value">{{ statistics?.totalDeductionAmount | currency:'USD':'symbol':'1.0-0'
+                    }}</span>
+                <span class="yearly-label">Deducción total</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Espacio inferior para el tab bar -->
+    <div style="height: 80px;"></div>
+
+</ion-content>

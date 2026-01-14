@@ -1,0 +1,168 @@
+<!-- ============================================================
+     HEADER - Barra superior con título y estado
+     ============================================================ -->
+
+<ion-content class="tracking-content" [fullscreen]="true">
+
+    <!-- ============================================================
+       MAPA DE GOOGLE - Fondo Pantalla Completa
+       ============================================================ -->
+    <div class="map-container">
+        <!-- Elemento donde se renderiza Google Maps -->
+        <div #mapElement class="map"></div>
+
+        <!-- Overlay de carga mientras se inicializa el mapa -->
+        @if (isLoadingMap()) {
+        <div class="map-loading-overlay">
+            <ion-spinner name="crescent" color="primary"></ion-spinner>
+            <p>Cargando mapa...</p>
+        </div>
+        }
+
+        <!-- Mensaje si no hay API key configurada -->
+        @if (mapError()) {
+        <div class="map-error-overlay">
+            <ion-icon name="warning-outline" color="warning"></ion-icon>
+            <p>{{ mapError() }}</p>
+            <ion-button size="small" (click)="retryLoadMap()">
+                <ion-icon name="refresh-outline" slot="start"></ion-icon>
+                Reintentar
+            </ion-button>
+        </div>
+        }
+    </div>
+
+    <!-- ============================================================
+       ESTADO: INICIO (Glass Card)
+       ============================================================ -->
+    @if (!trackingState()?.isTracking) {
+    <div class="glass-card fade-in-up">
+        <p class="instruction-text">Selecciona el propósito del viaje para comenzar:</p>
+
+        <div class="categories">
+            <button class="category-btn" [class.selected]="selectedPurpose() === 'business'" onclick=""
+                (click)="selectPurpose('business')">
+                <svg class="category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                </svg>
+                <span class="category-label">Negocios</span>
+            </button>
+
+            <button class="category-btn" [class.selected]="selectedPurpose() === 'medical'" onclick=""
+                (click)="selectPurpose('medical')">
+                <svg class="category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M11 2a2 2 0 0 0-2 2v5H4a2 2 0 0 0-2 2v2c0 1.1.9 2 2 2h5v5c0 1.1.9 2 2 2h2a2 2 0 0 0 2-2v-5h5a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-5V4a2 2 0 0 0-2-2h-2z" />
+                </svg>
+                <span class="category-label">Médico</span>
+            </button>
+
+            <button class="category-btn" [class.selected]="selectedPurpose() === 'charity'" onclick=""
+                (click)="selectPurpose('charity')">
+                <svg class="category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                </svg>
+                <span class="category-label">Caridad</span>
+            </button>
+
+            <button class="category-btn" [class.selected]="selectedPurpose() === 'moving'" onclick=""
+                (click)="selectPurpose('moving')">
+                <svg class="category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+                <span class="category-label">Mudanza</span>
+            </button>
+        </div>
+
+        <button class="start-btn" [disabled]="!selectedPurpose() || isStartingTracking()" (click)="startTracking()">
+            @if (isStartingTracking()) {
+            <ion-spinner name="crescent" color="light"></ion-spinner>
+            } @else {
+            <svg viewBox="0 0 24 24">
+                <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            INICIAR RECORRIDO
+            }
+        </button>
+    </div>
+    }
+
+    <!-- ============================================================
+       ESTADO: TRACKING ACTIVO (Stats Panel Overlay)
+       ============================================================ -->
+    @if (trackingState()?.isTracking) {
+    <div class="stats-panel-overlay fade-in-up">
+
+        <!-- Fila superior: Distancia y Tiempo -->
+        <!-- Fila superior: Distancia y Tiempo -->
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="stat-info">
+                    <span class="stat-value">{{ formatTime(trackingState()?.elapsedTime || 0) }}</span>
+                    <span class="stat-label">Tiempo</span>
+                </div>
+            </div>
+
+            <div class="stat-item primary">
+                <div class="stat-info">
+                    <span class="stat-value">{{ formatDistance(trackingState()?.currentDistance || 0) }}</span>
+                    <span class="stat-label">Millas</span>
+                </div>
+            </div>
+
+            <div class="stat-item">
+                <div class="stat-info">
+                    <span class="stat-value">{{ formatSpeed(trackingState()?.currentSpeed || 0) }}</span>
+                    <span class="stat-label">MPH</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Propósito e Ingresos -->
+        @if (trackingState()?.currentTrip) {
+        <div class="trip-info-row">
+            <div class="trip-tag" [class]="getPurposeColor(trackingState()?.currentTrip?.purpose)">
+                <ion-icon [name]="getPurposeIcon(trackingState()?.currentTrip?.purpose)"></ion-icon>
+                {{ getPurposeLabel(trackingState()?.currentTrip?.purpose) }}
+            </div>
+            <div class="deduction-val">
+                +${{ calculateDeduction(trackingState()?.currentDistance || 0) }}
+            </div>
+        </div>
+        }
+
+        <!-- Controles Activos -->
+        <div class="active-controls-row">
+            @if (!trackingState()?.isPaused) {
+            <ion-button fill="outline" color="warning" class="active-ctrl-btn" (click)="pauseTracking()">
+                <ion-icon name="pause-outline"></ion-icon>
+            </ion-button>
+            } @else {
+            <ion-button fill="outline" color="success" class="active-ctrl-btn" (click)="resumeTracking()">
+                <ion-icon name="play-outline"></ion-icon>
+            </ion-button>
+            }
+
+            <ion-button fill="solid" color="danger" class="active-ctrl-btn stop" (click)="confirmStopTracking()">
+                <ion-icon name="stop-outline" slot="icon-only" style="margin-right: 8px;"></ion-icon>
+                FINALIZAR
+            </ion-button>
+        </div>
+
+        @if (trackingState()?.isPaused) {
+        <div class="pause-banner">PAUSADO</div>
+        }
+    </div>
+    }
+
+    <!-- ============================================================
+       TOAST PARA NOTIFICACIONES
+       ============================================================ -->
+    <ion-toast [isOpen]="showToast()" [message]="toastMessage()" [duration]="3000" [color]="toastColor()" position="top"
+        (didDismiss)="showToast.set(false)" style="margin-top: 60px;">
+    </ion-toast>
+
+</ion-content>
