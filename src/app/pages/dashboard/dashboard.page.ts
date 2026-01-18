@@ -46,10 +46,11 @@ import {
 import { Chart, registerables } from 'chart.js';
 import { Subscription } from 'rxjs';
 
-import { AuthService } from '../../services/auth.service';
+import { CustomerAuthService } from '../../services/customer-auth.service';
 import { TripService } from '../../services/trip.service';
 import { GpsTrackingService } from '../../services/gps-tracking.service';
 import { User, UserStatistics, Trip, DailyMileage } from '../../models/interfaces';
+import { ICustomerProfile } from '../../models/customer-login.interface';
 import { environment } from '../../../environments/environment';
 
 // Registrar componentes de Chart.js
@@ -83,7 +84,7 @@ Chart.register(...registerables);
 export class DashboardPage implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('chartCanvas') chartCanvas!: ElementRef<HTMLCanvasElement>;
 
-  private authService = inject(AuthService);
+  private authService = inject(CustomerAuthService);
   private tripService = inject(TripService);
   private trackingService = inject(GpsTrackingService);
   private router = inject(Router);
@@ -91,7 +92,7 @@ export class DashboardPage implements OnInit, OnDestroy, AfterViewInit {
   private subscriptions: Subscription[] = [];
   private chart: Chart | null = null;
 
-  user: User | null = null;
+  user: ICustomerProfile | null = null;
   statistics: UserStatistics | null = null;
   recentTrips: Trip[] = [];
   dailyMileage: DailyMileage[] = [];
@@ -134,8 +135,26 @@ export class DashboardPage implements OnInit, OnDestroy, AfterViewInit {
 
 
   ngOnInit(): void {
-    this.loadData();
     this.setupSubscriptions();
+    this.loadUserProfile();
+    this.loadData();
+  }
+
+  /**
+   * Carga el perfil del usuario si no está disponible
+   */
+  private loadUserProfile(): void {
+    // Si no hay usuario cargado, intentar cargarlo
+    if (!this.authService.getCurrentCustomer()) {
+      this.authService.loadCustomerProfile().subscribe({
+        next: (customer) => {
+          console.log('Perfil cargado en dashboard:', customer?.firstName);
+        },
+        error: (err) => {
+          console.error('Error cargando perfil en dashboard:', err);
+        }
+      });
+    }
   }
 
   ngAfterViewInit(): void {
@@ -155,8 +174,8 @@ export class DashboardPage implements OnInit, OnDestroy, AfterViewInit {
   private setupSubscriptions(): void {
     // Suscribirse al usuario actual
     this.subscriptions.push(
-      this.authService.currentUser$.subscribe(user => {
-        this.user = user;
+      this.authService.currentCustomer$.subscribe((customer: ICustomerProfile | null) => {
+        this.user = customer;
       })
     );
 

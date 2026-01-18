@@ -31,10 +31,7 @@ import {
   lockClosedOutline,
   alertCircleOutline
 } from 'ionicons/icons';
-// import { BiometryType } from '@capacitor-community/biometric-auth';
-
-import { AuthService } from '../../services/auth.service';
-import { BiometryType } from '@capgo/capacitor-native-biometric/dist/esm/definitions';
+import { CustomerAuthService, BiometryType } from '../../services/customer-auth.service';
 
 
 @Component({
@@ -55,7 +52,7 @@ import { BiometryType } from '@capgo/capacitor-native-biometric/dist/esm/definit
 })
 export class LoginPage implements OnInit {
   // Inyección de dependencias
-  private authService = inject(AuthService);
+  private authService = inject(CustomerAuthService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
   private alertController = inject(AlertController);
@@ -90,11 +87,7 @@ export class LoginPage implements OnInit {
   async ngOnInit(): Promise<void> {
     // Verificar si hay biometría disponible
     await this.checkBiometricAvailability();
-
-    // Si hay sesión activa, redirigir al dashboard
-    if (this.authService.isLoggedIn()) {
-      this.router.navigate(['/tabs/dashboard']);
-    }
+    // La redirección si ya está autenticado se maneja con noAuthGuard en las rutas
   }
 
   /**
@@ -102,11 +95,10 @@ export class LoginPage implements OnInit {
    */
   async checkBiometricAvailability(): Promise<void> {
     try {
+      // Verificar si el hardware biométrico está disponible
       const biometryType = await this.authService.checkBiometricAvailability();
 
       if (biometryType) {
-        this.biometryAvailable = true;
-
         // Mapear el tipo de biometría
         switch (biometryType) {
           case BiometryType.FACE_ID:
@@ -123,9 +115,13 @@ export class LoginPage implements OnInit {
             this.biometryType = 'fingerprint';
         }
 
-        // Verificar si el login biométrico está habilitado
+        // Verificar si hay credenciales biométricas guardadas
         const biometricEnabled = await this.authService.isBiometricLoginEnabled();
         this.biometryAvailable = biometricEnabled;
+
+        console.log('Biometría disponible:', this.biometryType, 'Habilitada:', biometricEnabled);
+      } else {
+        this.biometryAvailable = false;
       }
     } catch (error) {
       console.log('Biometría no disponible:', error);
@@ -146,40 +142,61 @@ export class LoginPage implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
 
+    // Limpiar localStorage antes del login
+    this.authService.clearStorageBeforeLogin();
+
     const credentials = {
       email: this.loginForm.value.email.trim().toLowerCase(),
       password: this.loginForm.value.password
     };
 
-    try {
-      // Intentar login
-      await this.authService.login(credentials).toPromise();
+    this.authService.login(credentials).subscribe({
+      next: async (response) => {
+        console.log('Login exitoso:', response);
+        if (response && response.success) {
+          // Verificar si hay biometría disponible
+          const biometryType = await this.authService.checkBiometricAvailability();
+          const biometricEnabled = await this.authService.isBiometricLoginEnabled();
 
-      // Preguntar si quiere habilitar biometría
-      const biometryType = await this.authService.checkBiometricAvailability();
-      if (biometryType) {
-        await this.askToEnableBiometrics();
+          if (biometryType) {
+            if (!biometricEnabled) {
+              // Primera vez: preguntar si quiere habilitarla
+              this.biometryType = biometryType === BiometryType.FACE_ID ? 'faceId' : 'fingerprint';
+              await this.askToEnableBiometrics();
+            } else {
+              // Ya está habilitada: actualizar tokens guardados con los nuevos
+              await this.authService.setBiometricLoginEnabled(true);
+              console.log('Tokens biométricos actualizados');
+            }
+          }
+
+          // Navegar al dashboard
+          await this.router.navigate(['/tabs/dashboard'], { replaceUrl: true });
+        } else {
+          this.errorMessage = response?.message || 'Error al iniciar sesión';
+        }
+      },
+      error: (error) => {
+        console.error('Error en login:', error);
+        this.errorMessage = error?.error?.message || error?.message || 'Error al iniciar sesión';
+        this.isLoading = false;
+      },
+      complete: () => {
+        this.isLoading = false;
       }
-
-      // Navegar al dashboard
-      await this.router.navigate(['/tabs/dashboard'], { replaceUrl: true });
-
-    } catch (error: any) {
-      this.errorMessage = error.message || 'Error al iniciar sesión';
-    } finally {
-      this.isLoading = false;
-    }
+    });
   }
 
   /**
    * Inicia sesión usando biometría
    */
   async loginWithBiometrics(): Promise<void> {
+    const loading = await this.loadingController.create({
+      message: 'Verificando...',
+      spinner: 'crescent'
+    });
+
     try {
-      const loading = await this.loadingController.create({
-        message: 'Verificando...',
-        spinner: 'crescent'
-      });
       await loading.present();
 
       const success = await this.authService.authenticateWithBiometrics();
@@ -188,19 +205,41 @@ export class LoginPage implements OnInit {
 
       if (success) {
         await this.router.navigate(['/tabs/dashboard'], { replaceUrl: true });
+      } else {
+        // Si no fue exitoso, mostrar mensaje para login manual
+        await this.showBiometricExpiredAlert();
       }
 
     } catch (error: any) {
-      await this.loadingController.dismiss();
+      await loading.dismiss();
 
-      // Mostrar error
-      const alert = await this.alertController.create({
-        header: 'Error de autenticación',
-        message: error.message || 'No se pudo verificar tu identidad',
-        buttons: ['Entendido']
-      });
-      await alert.present();
+      console.error('Error en login biométrico:', error);
+
+      // Verificar si es un error de token expirado o credenciales inválidas
+      if (error.message?.includes('401') || error.message?.includes('expired') || error.message?.includes('invalid')) {
+        await this.showBiometricExpiredAlert();
+      } else {
+        // Otro tipo de error (usuario canceló, etc.)
+        const alert = await this.alertController.create({
+          header: 'Error de autenticación',
+          message: error.message || 'No se pudo verificar tu identidad',
+          buttons: ['Entendido']
+        });
+        await alert.present();
+      }
     }
+  }
+
+  /**
+   * Muestra alerta cuando las credenciales biométricas expiraron
+   */
+  private async showBiometricExpiredAlert(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Sesión expirada',
+      message: 'Tu sesión guardada ha expirado. Por favor, inicia sesión con tu correo y contraseña para actualizar tus credenciales biométricas.',
+      buttons: ['Entendido']
+    });
+    await alert.present();
   }
 
   /**

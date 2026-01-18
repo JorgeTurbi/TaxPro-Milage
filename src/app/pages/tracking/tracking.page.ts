@@ -86,6 +86,10 @@ export class TrackingPage implements OnInit, OnDestroy {
 
   // Subscriptions
   private trackingSubscription?: Subscription;
+  private drivingDetectionSubscription?: Subscription;
+
+  // Detección de movimiento
+  showDrivingPrompt = signal(false);
 
   constructor(
     private gpsTrackingService: GpsTrackingService,
@@ -117,6 +121,16 @@ export class TrackingPage implements OnInit, OnDestroy {
       }
     );
 
+    // Suscribirse a la detección de conducción
+    this.drivingDetectionSubscription = this.gpsTrackingService.drivingDetected$.subscribe(
+      async (isDetected) => {
+        if (isDetected && !this.trackingState()?.isTracking) {
+          console.log('🚗 Conducción detectada, mostrando prompt...');
+          await this.showDrivingDetectedAlert();
+        }
+      }
+    );
+
     // Cargar Google Maps
     await this.loadGoogleMaps();
   }
@@ -126,6 +140,93 @@ export class TrackingPage implements OnInit, OnDestroy {
     if (this.trackingSubscription) {
       this.trackingSubscription.unsubscribe();
     }
+    if (this.drivingDetectionSubscription) {
+      this.drivingDetectionSubscription.unsubscribe();
+    }
+  }
+
+  /**
+   * Muestra alerta cuando se detecta conducción
+   */
+  async showDrivingDetectedAlert() {
+    const alert = await this.alertController.create({
+      header: '🚗 ¡Movimiento Detectado!',
+      message: 'Parece que estás conduciendo. ¿Deseas iniciar el tracking de millas?',
+      cssClass: 'driving-detected-alert',
+      backdropDismiss: false,
+      buttons: [
+        {
+          text: 'No, gracias',
+          role: 'cancel',
+          handler: () => {
+            console.log('Usuario rechazó iniciar tracking');
+          }
+        },
+        {
+          text: 'Sí, iniciar',
+          handler: () => {
+            // Mostrar selector de propósito
+            this.showPurposeSelectorForAutoStart();
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  /**
+   * Muestra selector de propósito para inicio automático
+   */
+  async showPurposeSelectorForAutoStart() {
+    const alert = await this.alertController.create({
+      header: 'Selecciona el Propósito',
+      message: '¿Cuál es el propósito de este viaje?',
+      inputs: [
+        {
+          name: 'purpose',
+          type: 'radio',
+          label: 'Negocios',
+          value: 'business',
+          checked: true
+        },
+        {
+          name: 'purpose',
+          type: 'radio',
+          label: 'Médico',
+          value: 'medical'
+        },
+        {
+          name: 'purpose',
+          type: 'radio',
+          label: 'Caridad',
+          value: 'charity'
+        },
+        {
+          name: 'purpose',
+          type: 'radio',
+          label: 'Mudanza',
+          value: 'moving'
+        }
+      ],
+      buttons: [
+        {
+          text: 'Cancelar',
+          role: 'cancel'
+        },
+        {
+          text: 'Iniciar',
+          handler: async (purpose) => {
+            if (purpose) {
+              this.selectedPurpose.set(purpose);
+              await this.startTracking();
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
   }
 
   /**
@@ -440,12 +541,14 @@ export class TrackingPage implements OnInit, OnDestroy {
    */
   async stopTracking() {
     try {
+      // Obtener estado antes de detener para mostrar marcador de fin
+      const stateBeforeStop = this.trackingState();
+
       await this.gpsTrackingService.stopTracking();
 
       // Añadir marcador de fin
-      const state = this.trackingState();
-      if (state && state.routePoints.length > 0) {
-        const lastPoint = state.routePoints[state.routePoints.length - 1];
+      if (stateBeforeStop && stateBeforeStop.routePoints.length > 0) {
+        const lastPoint = stateBeforeStop.routePoints[stateBeforeStop.routePoints.length - 1];
         this.endMarker = new google.maps.Marker({
           position: { lat: lastPoint.latitude, lng: lastPoint.longitude },
           map: this.map,
@@ -463,12 +566,37 @@ export class TrackingPage implements OnInit, OnDestroy {
       }
 
       this.showNotification('¡Recorrido finalizado y guardado! ✅', 'success');
-      this.selectedPurpose.set(null);
+
+      // Reiniciar completamente el estado
+      this.resetTrackingUI();
 
     } catch (error: any) {
       console.error('❌ Error deteniendo tracking:', error);
       this.showNotification(error.message || 'Error al finalizar el recorrido', 'danger');
     }
+  }
+
+  /**
+   * Reinicia la UI del tracking completamente
+   */
+  private resetTrackingUI() {
+    // Limpiar propósito seleccionado
+    this.selectedPurpose.set(null);
+
+    // Limpiar marcadores después de un tiempo para que el usuario vea el resultado
+    setTimeout(() => {
+      if (this.startMarker) {
+        this.startMarker.setMap(null);
+        this.startMarker = null;
+      }
+      if (this.endMarker) {
+        this.endMarker.setMap(null);
+        this.endMarker = null;
+      }
+      if (this.routePolyline) {
+        this.routePolyline.setPath([]);
+      }
+    }, 3000);
   }
 
   /**

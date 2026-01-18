@@ -7,9 +7,8 @@
 
 import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
-import { map, take } from 'rxjs/operators';
 
-import { AuthService } from '../services/auth.service';
+import { CustomerAuthService } from '../services/customer-auth.service';
 
 /**
  * Guard funcional de autenticación
@@ -17,29 +16,21 @@ import { AuthService } from '../services/auth.service';
  * el acceso a una ruta protegida
  */
 export const authGuard: CanActivateFn = (route, state) => {
-  const authService = inject(AuthService);
+  const authService = inject(CustomerAuthService);
   const router = inject(Router);
 
-  return authService.isAuthenticated$.pipe(
-    take(1),
-    map(isAuthenticated => {
-      if (isAuthenticated) {
-        // Usuario autenticado, permitir acceso
-        console.log('✅ Guard: Usuario autenticado, acceso permitido');
-        return true;
-      } else {
-        // Usuario no autenticado, redirigir al login
-        console.log('⛔ Guard: Usuario no autenticado, redirigiendo a login');
-        
-        // Guardar la URL original para redirigir después del login
-        const returnUrl = state.url;
-        
-        return router.createUrlTree(['/login'], {
-          queryParams: { returnUrl }
-        });
-      }
-    })
-  );
+  const isAuthenticated = authService.isLoggedIn();
+
+  if (isAuthenticated) {
+    console.log('Guard: Usuario autenticado, acceso permitido');
+    return true;
+  } else {
+    console.log('Guard: Usuario no autenticado, redirigiendo a login');
+    const returnUrl = state.url;
+    return router.createUrlTree(['/login'], {
+      queryParams: { returnUrl }
+    });
+  }
 };
 
 /**
@@ -47,20 +38,15 @@ export const authGuard: CanActivateFn = (route, state) => {
  * Útil para la página de login
  */
 export const noAuthGuard: CanActivateFn = (route, state) => {
-  const authService = inject(AuthService);
+  const authService = inject(CustomerAuthService);
   const router = inject(Router);
 
-  return authService.isAuthenticated$.pipe(
-    take(1),
-    map(isAuthenticated => {
-      if (!isAuthenticated) {
-        // Usuario no autenticado, permitir acceso al login
-        return true;
-      } else {
-        // Usuario ya autenticado, redirigir al dashboard
-        console.log('ℹ️ Guard: Usuario ya autenticado, redirigiendo a dashboard');
-        return router.createUrlTree(['/tabs/dashboard']);
-      }
-    })
-  );
+  const isAuthenticated = authService.isLoggedIn();
+
+  if (!isAuthenticated) {
+    return true;
+  } else {
+    console.log('Guard: Usuario ya autenticado, redirigiendo a dashboard');
+    return router.createUrlTree(['/tabs/dashboard']);
+  }
 };

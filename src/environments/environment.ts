@@ -12,13 +12,14 @@ export const environment = {
   // CONFIGURACIÓN DE API
   // ===========================================
 
-  apiUrl: 'https://api.tu-dominio.com/api/v1',
+  apiUrl: 'https://api.taxprosuite.com/api',
 
   endpoints: {
-    login: '/auth/login',
-    logout: '/auth/logout',
-    refreshToken: '/auth/refresh',
-    userProfile: '/auth/profile',
+    login: '/auth/client/login',
+    logout: '/auth/client/logout',
+    miltilogin: '/auth/client/login/select-company',
+    //refreshToken: '/auth/refresh',
+    userProfile: '/auth/client/profile',
     trips: '/trips',
     tripById: '/trips/:id',
     tripsByDateRange: '/trips/range',

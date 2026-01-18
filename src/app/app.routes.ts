@@ -13,7 +13,7 @@
  */
 
 import { Routes } from '@angular/router';
-import { authGuard } from './guards/auth.guard';
+import { authGuard, noAuthGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   // Ruta raíz - Redirige al login o dashboard según autenticación
@@ -23,11 +23,11 @@ export const routes: Routes = [
     pathMatch: 'full'
   },
 
-  // Página de Login
+  // Página de Login (con guard que redirige si ya está autenticado)
   {
     path: 'login',
     loadComponent: () => import('./pages/login/login.page').then(m => m.LoginPage),
-    // No requiere autenticación
+    canActivate: [noAuthGuard]
   },
 
   // Contenedor principal con Tabs (requiere autenticación)

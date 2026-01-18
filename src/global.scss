@@ -481,3 +481,147 @@ ion-tab-bar {
 ion-content {
   --padding-bottom: 110px !important;
 }
+
+/* ==============================================
+ * MODO OSCURO
+ * ============================================== */
+body.dark {
+  --ion-background-color: #121212;
+  --ion-background-color-rgb: 18, 18, 18;
+
+  --ion-text-color: #ffffff;
+  --ion-text-color-rgb: 255, 255, 255;
+
+  --ion-card-background: #1e1e1e;
+  --ion-item-background: #1e1e1e;
+
+  --ion-toolbar-background: #1a365d;
+  --ion-tab-bar-background: #1e1e1e;
+
+  --taxpro-card-background: #1e1e1e;
+  --taxpro-text-primary: #ffffff;
+  --taxpro-text-secondary: #b0b0b0;
+  --taxpro-text-muted: #808080;
+  --taxpro-border-color: #333333;
+
+  ion-content {
+    --background: #121212;
+  }
+
+  ion-card {
+    --background: #1e1e1e;
+    color: #ffffff;
+  }
+
+  ion-item {
+    --background: #1e1e1e;
+    --color: #ffffff;
+  }
+
+  ion-list {
+    --background: #1e1e1e;
+  }
+
+  .settings-content {
+    --background: #121212 !important;
+  }
+
+  .settings-title {
+    color: #ffffff !important;
+  }
+
+  .section-title {
+    color: #b0b0b0 !important;
+  }
+
+  .settings-list {
+    background: #1e1e1e !important;
+  }
+
+  .settings-item {
+    --background: #1e1e1e !important;
+
+    ion-label {
+      color: #ffffff !important;
+    }
+  }
+
+  .item-icon {
+    color: #ffffff !important;
+  }
+
+  .arrow-icon {
+    color: #666666 !important;
+  }
+
+  ion-alert {
+    --background: #1e1e1e;
+    --ion-text-color: #ffffff;
+
+    .alert-title {
+      color: #ffffff;
+    }
+
+    .alert-message {
+      color: #b0b0b0;
+    }
+
+    .alert-input {
+      background: #333333 !important;
+      color: #ffffff !important;
+      border-color: #444444 !important;
+    }
+
+    .alert-checkbox-label,
+    .alert-radio-label {
+      color: #ffffff !important;
+    }
+  }
+}
+
+/* ==============================================
+ * TAMAÑO DE FUENTE
+ * ============================================== */
+body.font-small {
+  font-size: 14px;
+
+  ion-content {
+    font-size: 14px;
+  }
+
+  ion-label {
+    font-size: 14px !important;
+  }
+
+  h1, h2, h3 {
+    font-size: 90% !important;
+  }
+}
+
+body.font-medium {
+  font-size: 16px;
+}
+
+body.font-large {
+  font-size: 18px;
+
+  ion-content {
+    font-size: 18px;
+  }
+
+  ion-label {
+    font-size: 18px !important;
+  }
+
+  h1, h2, h3 {
+    font-size: 110% !important;
+  }
+
+  .settings-title {
+    font-size: 28px !important;
+  }
+
+  .section-title {
+    font-size: 14px !important;
+  }
+}

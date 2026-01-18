@@ -107,12 +107,15 @@
                         <p>Finalizar viaje después de estar detenido</p>
                     </ion-label>
                     <ion-select [(ngModel)]="autoStopMinutes" (ionChange)="saveAutoStopSetting()" interface="popover">
+                        <ion-select-option [value]="1">1 minuto</ion-select-option>
                         <ion-select-option [value]="2">2 minutos</ion-select-option>
                         <ion-select-option [value]="5">5 minutos</ion-select-option>
                         <ion-select-option [value]="10">10 minutos</ion-select-option>
                         <ion-select-option [value]="15">15 minutos</ion-select-option>
                         <ion-select-option [value]="30">30 minutos</ion-select-option>
                         <ion-select-option [value]="60">1 hora</ion-select-option>
+                        <ion-select-option [value]="120">2 horas</ion-select-option>
+                        <ion-select-option [value]="240">4 horas</ion-select-option>
                         <ion-select-option [value]="0">Desactivado (manual)</ion-select-option>
                     </ion-select>
                 </ion-item>

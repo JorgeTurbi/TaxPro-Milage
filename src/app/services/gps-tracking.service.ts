@@ -91,6 +91,15 @@ export class GpsTrackingService {
   // Configuración de auto-stop (puede ser modificada por el usuario)
   private autoStopMinutes: number = 5;
 
+  // Control de logs para evitar spam
+  private lastLoggedPosition: { lat: number; lng: number } | null = null;
+  private lastLogTime: number = 0;
+  private readonly LOG_INTERVAL_MS = 10000; // Solo log cada 10 segundos máximo
+  private readonly POSITION_CHANGE_THRESHOLD = 0.0001; // ~11 metros de diferencia para considerar cambio
+
+  // Contador de puntos ignorados para debugging
+  private ignoredPointsCount: number = 0;
+
   constructor() {
     this.restoreTrackingState();
     this.loadAutoStopSetting();
@@ -134,12 +143,11 @@ export class GpsTrackingService {
 
   /**
    * Inicia la detección de conducción en segundo plano
+   * Solo emite eventos cuando detecta conducción real
    */
   async startDrivingDetection(): Promise<void> {
     if (this.drivingDetectionWatchId) return;
     if (!this.config.enableDrivingDetection) return;
-    
-    console.log('🚗 Iniciando detección de conducción...');
 
     try {
       await this.checkAndRequestPermissions();
@@ -152,7 +160,7 @@ export class GpsTrackingService {
         },
         (position, err) => {
           if (err) {
-            console.error('Error en detección de conducción:', err);
+            // Solo log de errores críticos
             return;
           }
 
@@ -177,20 +185,21 @@ export class GpsTrackingService {
       this.drivingDetectionWatchId = null;
       this.drivingDetectionSubject.next(false);
       this.consecutiveDrivingPoints = 0;
-      console.log('🛑 Detección de conducción detenida');
     }
   }
 
   /**
    * Verifica si el usuario está conduciendo
+   * Solo emite log cuando hay cambio de estado significativo
    */
   private checkIfDriving(position: Position): void {
     const speed = position.coords.speed || 0;
+    const speedMph = speed * 2.237;
     const drivingThreshold = this.config.drivingDetectionSpeed;
 
     if (speed >= drivingThreshold) {
       this.consecutiveDrivingPoints++;
-      
+
       if (this.consecutiveDrivingPoints === 1) {
         this.drivingStartTime = Date.now();
       }
@@ -199,14 +208,16 @@ export class GpsTrackingService {
       const detectionTime = this.config.drivingDetectionTime;
 
       if (drivingTime >= detectionTime && !this.drivingDetectionSubject.value) {
-        console.log('🚗 ¡Conducción detectada!');
+        // Solo log cuando realmente detecta conducción
+        this.logThrottled(`🚗 Conducción detectada (${speedMph.toFixed(0)} MPH)`);
         this.drivingDetectionSubject.next(true);
         this.sendDrivingNotification();
       }
     } else {
+      // Reset sin log
       this.consecutiveDrivingPoints = 0;
       this.drivingStartTime = 0;
-      
+
       if (this.drivingDetectionSubject.value) {
         this.drivingDetectionSubject.next(false);
       }
@@ -240,15 +251,12 @@ export class GpsTrackingService {
    * Inicia el tracking de un nuevo recorrido
    */
   async startTracking(purpose: TripPurpose = 'business'): Promise<void> {
-    console.log('🚗 Iniciando tracking GPS...');
-
     try {
       await this.checkAndRequestPermissions();
-      
       await this.stopDrivingDetection();
 
       const initialPosition = await this.getCurrentPosition();
-      
+
       if (!initialPosition) {
         throw new Error('No se pudo obtener la ubicación inicial');
       }
@@ -262,6 +270,11 @@ export class GpsTrackingService {
         heading: initialPosition.coords.heading ?? undefined,
         timestamp: initialPosition.timestamp
       };
+
+      // Inicializar control de logs
+      this.lastLoggedPosition = { lat: startPoint.latitude, lng: startPoint.longitude };
+      this.lastLogTime = Date.now();
+      this.ignoredPointsCount = 0;
 
       const newState: TrackingState = {
         isTracking: true,
@@ -284,7 +297,8 @@ export class GpsTrackingService {
       this.startTimer();
       await this.saveTrackingState();
 
-      console.log('✅ Tracking iniciado desde:', startPoint);
+      // Solo un log al iniciar
+      console.log('✅ Tracking iniciado');
 
     } catch (error) {
       console.error('❌ Error iniciando tracking:', error);
@@ -297,13 +311,11 @@ export class GpsTrackingService {
    */
   pauseTracking(): void {
     const currentState = this.trackingStateSubject.value;
-    
+
     if (!currentState.isTracking || currentState.isPaused) {
       return;
     }
 
-    console.log('⏸️ Pausando tracking...');
-    
     this.trackingStateSubject.next({
       ...currentState,
       isPaused: true
@@ -319,12 +331,10 @@ export class GpsTrackingService {
    */
   async resumeTracking(): Promise<void> {
     const currentState = this.trackingStateSubject.value;
-    
+
     if (!currentState.isTracking || !currentState.isPaused) {
       return;
     }
-
-    console.log('▶️ Reanudando tracking...');
 
     this.trackingStateSubject.next({
       ...currentState,
@@ -333,7 +343,7 @@ export class GpsTrackingService {
 
     await this.startPositionWatcher();
     this.startTimer();
-    
+
     this.lastMovementTime = Date.now();
     this.stoppedSince = 0;
     this.isTemporarilyStopped = false;
@@ -344,12 +354,10 @@ export class GpsTrackingService {
    */
   async stopTracking(autoStopped: boolean = false): Promise<Trip | null> {
     const currentState = this.trackingStateSubject.value;
-    
+
     if (!currentState.isTracking) {
       return null;
     }
-
-    console.log(autoStopped ? '🛑 Deteniendo tracking automáticamente...' : '🛑 Deteniendo tracking...');
 
     this.stopPositionWatcher();
     this.stopTimer();
@@ -358,9 +366,9 @@ export class GpsTrackingService {
 
     try {
       const finalPosition = await this.getCurrentPosition();
-      
+
       let endPoint: GpsPoint;
-      
+
       if (finalPosition) {
         endPoint = {
           latitude: finalPosition.coords.latitude,
@@ -395,7 +403,8 @@ export class GpsTrackingService {
         this.startDrivingDetection();
       }
 
-      console.log('✅ Tracking finalizado. Distancia:', tripData.distanceMiles.toFixed(2), 'millas');
+      // Solo log al finalizar con resumen
+      console.log(`✅ Tracking finalizado: ${tripData.distanceMiles.toFixed(2)} mi, ${currentState.routePoints.length} puntos`);
 
       return savedTrip || null;
 
@@ -411,8 +420,6 @@ export class GpsTrackingService {
    * Cancela el tracking sin guardar
    */
   async cancelTracking(): Promise<void> {
-    console.log('❌ Cancelando tracking...');
-    
     this.stopPositionWatcher();
     this.stopTimer();
     this.clearAutoStopTimeout();
@@ -430,8 +437,6 @@ export class GpsTrackingService {
   // ===========================================
 
   private async startPositionWatcher(): Promise<void> {
-    console.log('📍 Iniciando watcher de posición...');
-
     const options = {
       enableHighAccuracy: true,
       timeout: 10000,
@@ -441,7 +446,7 @@ export class GpsTrackingService {
     try {
       this.watchId = await Geolocation.watchPosition(options, (position, err) => {
         if (err) {
-          console.error('Error obteniendo posición:', err);
+          // Solo log de errores críticos, no spam
           return;
         }
 
@@ -451,10 +456,8 @@ export class GpsTrackingService {
           });
         }
       });
-
-      console.log('✅ Watcher de posición iniciado con ID:', this.watchId);
     } catch (error) {
-      console.error('❌ Error iniciando watcher:', error);
+      console.error('❌ Error iniciando watcher GPS:', error);
       throw error;
     }
   }
@@ -463,16 +466,17 @@ export class GpsTrackingService {
     if (this.watchId) {
       await Geolocation.clearWatch({ id: this.watchId });
       this.watchId = null;
-      console.log('🛑 Watcher de posición detenido');
     }
   }
 
   /**
    * Procesa una actualización de posición
+   * Solo registra puntos cuando hay movimiento real (conduciendo)
+   * Limita los logs para evitar spam en la consola
    */
   private handlePositionUpdate(position: Position): void {
     const currentState = this.trackingStateSubject.value;
-    
+
     if (!currentState.isTracking || currentState.isPaused) {
       return;
     }
@@ -487,31 +491,45 @@ export class GpsTrackingService {
       timestamp: position.timestamp
     };
 
+    // Verificar si la posición es significativamente diferente
+    const isSamePosition = this.isSamePosition(newPoint.latitude, newPoint.longitude);
+
+    // Si la precisión es muy baja, ignorar silenciosamente
     if (newPoint.accuracy && newPoint.accuracy > this.config.minimumAccuracy) {
-      console.log('⚠️ Precisión baja, ignorando punto:', newPoint.accuracy);
+      this.ignoredPointsCount++;
       return;
     }
 
     const currentSpeedMph = (position.coords.speed || 0) * 2.237;
-    
     const lastPoint = currentState.routePoints[currentState.routePoints.length - 1];
-    const distanceFromLast = this.calculateDistance(lastPoint, newPoint) * 5280;
+    const distanceFromLastFeet = this.calculateDistance(lastPoint, newPoint) * 5280;
 
-    const isMoving = currentSpeedMph >= 2 || distanceFromLast > 30;
+    // Criterios más estrictos para considerar que está conduciendo
+    // Debe tener velocidad >= 5 MPH O haber movido >= 50 pies (15 metros)
+    const isDriving = currentSpeedMph >= 5 || distanceFromLastFeet > 50;
 
-    if (isMoving) {
+    // Movimiento mínimo: velocidad >= 2 MPH O movido >= 30 pies
+    const hasMinimalMovement = currentSpeedMph >= 2 || distanceFromLastFeet > 30;
+
+    if (isDriving) {
+      // Está conduciendo activamente
       this.lastMovementTime = Date.now();
-      
+      this.ignoredPointsCount = 0;
+
       if (this.isTemporarilyStopped) {
-        console.log('🚗 Movimiento detectado, reanudando tracking...');
+        this.logThrottled('🚗 Conducción detectada, reanudando tracking...');
         this.isTemporarilyStopped = false;
         this.stoppedSince = 0;
         this.clearAutoStopTimeout();
       }
 
-      if (distanceFromLast >= this.config.minimumDistance * 3.281) {
+      // Solo registrar punto si se movió lo suficiente (distancia mínima)
+      if (distanceFromLastFeet >= this.config.minimumDistance * 3.281) {
         const newDistance = currentState.currentDistance + this.calculateDistance(lastPoint, newPoint);
-        
+
+        // Actualizar posición de log
+        this.lastLoggedPosition = { lat: newPoint.latitude, lng: newPoint.longitude };
+
         this.trackingStateSubject.next({
           ...currentState,
           routePoints: [...currentState.routePoints, newPoint],
@@ -523,6 +541,7 @@ export class GpsTrackingService {
 
         this.saveTrackingState();
       } else {
+        // Solo actualizar velocidad y posición actual, sin agregar punto a la ruta
         this.trackingStateSubject.next({
           ...currentState,
           currentPosition: newPoint,
@@ -530,19 +549,59 @@ export class GpsTrackingService {
           lastUpdate: Date.now()
         });
       }
+    } else if (hasMinimalMovement) {
+      // Movimiento leve (posible tráfico lento, estacionando, etc.)
+      this.lastMovementTime = Date.now();
+
+      // Solo actualizar velocidad, no agregar puntos
+      this.trackingStateSubject.next({
+        ...currentState,
+        currentPosition: newPoint,
+        currentSpeed: currentSpeedMph,
+        lastUpdate: Date.now()
+      });
     } else {
+      // Detenido o en el mismo lugar
       if (!this.isTemporarilyStopped) {
         this.isTemporarilyStopped = true;
         this.stoppedSince = Date.now();
-        console.log('⏸️ Vehículo detenido, iniciando contador de auto-stop...');
+        this.logThrottled('⏸️ Vehículo detenido, auto-stop en ' + this.autoStopMinutes + ' min');
         this.scheduleAutoStop();
       }
 
-      this.trackingStateSubject.next({
-        ...currentState,
-        currentSpeed: 0,
-        lastUpdate: Date.now()
-      });
+      // Solo actualizar estado si es necesario (evitar actualizaciones innecesarias)
+      if (currentState.currentSpeed !== 0) {
+        this.trackingStateSubject.next({
+          ...currentState,
+          currentSpeed: 0,
+          lastUpdate: Date.now()
+        });
+      }
+    }
+  }
+
+  /**
+   * Verifica si la posición es la misma que la última registrada
+   */
+  private isSamePosition(lat: number, lng: number): boolean {
+    if (!this.lastLoggedPosition) {
+      return false;
+    }
+
+    const latDiff = Math.abs(lat - this.lastLoggedPosition.lat);
+    const lngDiff = Math.abs(lng - this.lastLoggedPosition.lng);
+
+    return latDiff < this.POSITION_CHANGE_THRESHOLD && lngDiff < this.POSITION_CHANGE_THRESHOLD;
+  }
+
+  /**
+   * Log con throttling para evitar spam en la consola
+   */
+  private logThrottled(message: string): void {
+    const now = Date.now();
+    if (now - this.lastLogTime >= this.LOG_INTERVAL_MS) {
+      console.log(message);
+      this.lastLogTime = now;
     }
   }
 

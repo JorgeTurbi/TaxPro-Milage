@@ -36,7 +36,33 @@
        ESTADO: INICIO (Glass Card)
        ============================================================ -->
     @if (!trackingState()?.isTracking) {
-    <div class="glass-card fade-in-up">
+    <!-- Panel de estadísticas iniciales (mostrando ceros) -->
+    <div class="stats-panel-overlay fade-in-up" style="margin-bottom: 0; border-radius: 20px 20px 0 0;">
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="stat-info">
+                    <span class="stat-value">0:00</span>
+                    <span class="stat-label">Tiempo</span>
+                </div>
+            </div>
+
+            <div class="stat-item primary">
+                <div class="stat-info">
+                    <span class="stat-value">0.00</span>
+                    <span class="stat-label">Millas</span>
+                </div>
+            </div>
+
+            <div class="stat-item">
+                <div class="stat-info">
+                    <span class="stat-value">0</span>
+                    <span class="stat-label">MPH</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card fade-in-up" style="margin-top: 0; border-radius: 0 0 20px 20px;">
         <p class="instruction-text">Selecciona el propósito del viaje para comenzar:</p>
 
         <div class="categories">

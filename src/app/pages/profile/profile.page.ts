@@ -29,10 +29,13 @@ import {
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Preferences } from '@capacitor/preferences';
 
-import { AuthService } from '../../services/auth.service';
+import { CustomerAuthService } from '../../services/customer-auth.service';
 import { GpsTrackingService } from '../../services/gps-tracking.service';
 import { User, Vehicle } from '../../models/interfaces';
+import { ICustomerProfile } from '../../models/customer-login.interface';
 import { environment } from '../../../environments/environment';
+import { Router } from '@angular/router';
+import { CustomerTokenService } from '../../services/customer-token.service';
 
 @Component({
   selector: 'app-profile',
@@ -48,14 +51,15 @@ import { environment } from '../../../environments/environment';
   styleUrl: './profile.page.scss'
 })
 export class ProfilePage implements OnInit {
-  private authService = inject(AuthService);
+  private authService = inject(CustomerAuthService);
   private gpsService = inject(GpsTrackingService);
   private alertController = inject(AlertController);
   private toastController = inject(ToastController);
   private actionSheetController = inject(ActionSheetController);
   private loadingController = inject(LoadingController);
-
-  user: User | null = null;
+  private router = inject(Router);  
+ private customerTokenService = inject(CustomerTokenService);
+  user: ICustomerProfile | null = null;
   profilePhoto: string | null = null;
   defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iIzFhMzY1ZCIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMzUiIHI9IjE4IiBmaWxsPSJ3aGl0ZSIvPjxwYXRoIGQ9Ik0yMCA4NWMwLTIwIDEzLTMwIDMwLTMwczMwIDEwIDMwIDMwIiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg==';
 
@@ -86,8 +90,8 @@ export class ProfilePage implements OnInit {
   }
 
   async loadUserData() {
-    this.authService.currentUser$.subscribe(user => {
-      this.user = user;
+    this.authService.currentCustomer$.subscribe((customer: ICustomerProfile | null) => {
+      this.user = customer;
     });
 
     const { value } = await Preferences.get({ key: 'profilePhoto' });
@@ -111,8 +115,8 @@ export class ProfilePage implements OnInit {
         this.defaultPurpose = purpose.value;
       }
 
-      const biometric = await Preferences.get({ key: 'biometricEnabled' });
-      this.biometricEnabled = biometric.value === 'true';
+      // Cargar estado real del biométrico desde el servicio
+      this.biometricEnabled = await this.authService.isBiometricLoginEnabled();
     } catch (error) {
       console.error('Error cargando configuración:', error);
     }
@@ -372,8 +376,16 @@ export class ProfilePage implements OnInit {
   }
 
   async toggleBiometric() {
-    await Preferences.set({ key: 'biometricEnabled', value: this.biometricEnabled.toString() });
-    this.showToast(this.biometricEnabled ? 'Login biométrico activado' : 'Login biométrico desactivado');
+    try {
+      // Usar el servicio de autenticación para manejar la biometría correctamente
+      await this.authService.setBiometricLoginEnabled(this.biometricEnabled);
+      await Preferences.set({ key: 'biometricEnabled', value: this.biometricEnabled.toString() });
+      this.showToast(this.biometricEnabled ? 'Login biométrico activado' : 'Login biométrico desactivado');
+    } catch (error) {
+      console.error('Error configurando biometría:', error);
+      this.biometricEnabled = !this.biometricEnabled; // Revertir cambio
+      this.showToast('Error al configurar login biométrico', 'danger');
+    }
   }
 
   // ===========================================
@@ -381,12 +393,40 @@ export class ProfilePage implements OnInit {
   // ===========================================
 
   async logout() {
+    const currentCustomer = this.authService.currentCustomerSubject.value;
+                  const customerName = currentCustomer
+     ? `${currentCustomer.firstName} ${currentCustomer.lastName}`.trim()
+     : this.customerTokenService.getCustomerDisplayNameFromToken();
+ 
     const alert = await this.alertController.create({
       header: 'Cerrar Sesión',
       message: '¿Estás seguro de que deseas cerrar sesión?',
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
-        { text: 'Cerrar Sesión', role: 'destructive', handler: () => this.authService.logout() }
+        { text: 'Cerrar Sesión', role: 'destructive', handler: () => this.authService.logout().subscribe({
+          next: async (item:boolean) => {  
+            if(item){
+    await this.router.navigate(['/login'], { replaceUrl: true });
+            }           
+          
+          },
+          error: async (error) => {
+            console.error('Error cerrando sesión:', error);
+            await this.showToast('Error cerrando sesión', 'danger');
+          },
+          complete: () => {
+        this.customerTokenService.removeTokens();        
+        this.authService .currentCustomerSubject.next(null);
+
+       const keysToRemove = Object.keys(localStorage).filter((key) =>
+         key.startsWith('customer_') ||
+         key.includes('chat_') ||
+          key.includes('webrtc_') ||
+         key.includes('TokenCloud')
+       );
+        keysToRemove.forEach((key) => localStorage.removeItem(key));
+  }, 
+        }) }
       ]
     });
     await alert.present();
