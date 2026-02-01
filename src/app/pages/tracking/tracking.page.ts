@@ -2,13 +2,13 @@
  * ============================================================
  * TRACKING PAGE - Página Principal de Seguimiento GPS
  * ============================================================
- * 
+ *
  * Esta página es el corazón de la aplicación. Aquí el usuario:
  * - Ve su ubicación actual en Google Maps
  * - Inicia/Pausa/Detiene el seguimiento de millas
  * - Ve en tiempo real la ruta que está recorriendo
  * - Observa estadísticas del viaje actual (distancia, tiempo, velocidad)
- * 
+ *
  * CARACTERÍSTICAS:
  * - Integración con Google Maps API
  * - Dibujo de polyline del recorrido en tiempo real
@@ -196,12 +196,12 @@ export class TrackingPage implements OnInit, OnDestroy {
           label: 'Médico',
           value: 'medical'
         },
-        {
-          name: 'purpose',
-          type: 'radio',
-          label: 'Caridad',
-          value: 'charity'
-        },
+        // {
+        //   name: 'purpose',
+        //   type: 'radio',
+        //   label: 'Caridad',
+        //   value: 'charity'
+        // },
         {
           name: 'purpose',
           type: 'radio',
