@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Ionic (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:8100",
+      "webRoot": "${workspaceFolder}",
+      "sourceMaps": true
+    }
+  ]
+}

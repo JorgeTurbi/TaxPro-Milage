@@ -3,12 +3,27 @@
  * ========================================
  * Este guard protege las rutas que requieren autenticación.
  * Si el usuario no está autenticado, redirige al login.
+ *
+ * NOTA: Usa CustomerTokenService en vez de CustomerAuthService
+ * para evitar dependencia circular (NG0200) con el interceptor HTTP.
  */
 
 import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
 
-import { CustomerAuthService } from '../services/customer-auth.service';
+import { CustomerTokenService } from '../services/customer-token.service';
+
+/**
+ * Verifica si el token JWT está vigente
+ */
+function isTokenValid(tokenService: CustomerTokenService): boolean {
+  const token = tokenService.token;
+  if (!token) return false;
+  const decoded = tokenService.decodeToken();
+  if (!decoded) return false;
+  const currentTime = Math.floor(Date.now() / 1000);
+  return decoded.exp > currentTime;
+}
 
 /**
  * Guard funcional de autenticación
@@ -16,16 +31,14 @@ import { CustomerAuthService } from '../services/customer-auth.service';
  * el acceso a una ruta protegida
  */
 export const authGuard: CanActivateFn = (route, state) => {
-  const authService = inject(CustomerAuthService);
+  const tokenService = inject(CustomerTokenService);
   const router = inject(Router);
 
-  const isAuthenticated = authService.isLoggedIn();
+  const isAuthenticated = isTokenValid(tokenService);
 
   if (isAuthenticated) {
-    console.log('Guard: Usuario autenticado, acceso permitido');
     return true;
   } else {
-    console.log('Guard: Usuario no autenticado, redirigiendo a login');
     const returnUrl = state.url;
     return router.createUrlTree(['/login'], {
       queryParams: { returnUrl }
@@ -38,15 +51,14 @@ export const authGuard: CanActivateFn = (route, state) => {
  * Útil para la página de login
  */
 export const noAuthGuard: CanActivateFn = (route, state) => {
-  const authService = inject(CustomerAuthService);
+  const tokenService = inject(CustomerTokenService);
   const router = inject(Router);
 
-  const isAuthenticated = authService.isLoggedIn();
+  const isAuthenticated = isTokenValid(tokenService);
 
   if (!isAuthenticated) {
     return true;
   } else {
-    console.log('Guard: Usuario ya autenticado, redirigiendo a dashboard');
     return router.createUrlTree(['/tabs/dashboard']);
   }
 };

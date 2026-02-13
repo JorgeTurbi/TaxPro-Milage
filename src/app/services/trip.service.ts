@@ -25,14 +25,19 @@ import {
   DailyMileage,
   MonthlyMileage,
   ApiResponse,
-  PaginatedResponse
+  PaginatedResponse,
+  TripPayloadDto,
+  TripStatisticsDto,
+  GeoPointDto,
 } from '../models/interfaces';
+import { CustomerTokenService } from './customer-token.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TripService {
   private http = inject(HttpClient);
+  private customerTokenService = inject(CustomerTokenService);
 
   // Cache de viajes
   private tripsCache = new BehaviorSubject<Trip[]>([]);
@@ -167,45 +172,64 @@ export class TripService {
   }
 
   /**
-   * Finaliza un trip y envía todos los datos
-   * ESTE ES EL MÉTODO QUE ENVÍA LOS DATOS A LA API
+   * Finaliza un trip y envía todos los datos al backend.
+   * Construye un payload que coincide con TripPayloadDto + TripStatisticsDto del backend.
    */
   finishTrip(data: FinishTripData): Observable<Trip> {
-    console.log('📤 Enviando datos del recorrido a la API...');
+    console.log('Enviando datos del recorrido a la API...');
 
     const url = `${environment.apiUrl}${environment.endpoints.mileageLog}`;
 
-    // Preparar los datos para la API
-    // NOTA: Ajusta estos campos según la estructura que espera tu API
-    const payload = {
+    // Convertir routePoints a GeoPointDto[]
+    const routePoints: GeoPointDto[] = data.route.map(point => ({
+      latitude: point.latitude,
+      longitude: point.longitude,
+      accuracy: point.accuracy ?? 0,
+      timestamp: point.timestamp,
+    }));
+
+    // Extraer customerId (nameid) y companyId del token JWT
+    const decodedToken = this.customerTokenService.decodeToken();
+    const customerId = decodedToken?.nameid ?? '';
+    const companyId = decodedToken?.companyId ?? '';
+
+    // Construir payload que coincide con TripPayloadDto del backend
+    const tripPayload: TripPayloadDto = {
       tripId: data.tripId,
-      endTime: new Date().toISOString(),
-      endLocation: {
+      customerId,
+      companyId,
+      purpose: data.purpose,
+      isTracking: false,
+      isPaused: false,
+      routePoints,
+      currentPosition: routePoints.length > 0 ? {
         latitude: data.endLocation.latitude,
         longitude: data.endLocation.longitude,
-        altitude: data.endLocation.altitude,
-        accuracy: data.endLocation.accuracy
-      },
-      route: data.route.map(point => ({
-        lat: point.latitude,
-        lng: point.longitude,
-        alt: point.altitude,
-        timestamp: point.timestamp,
-        speed: point.speed,
-        accuracy: point.accuracy
-      })),
-      statistics: {
-        distanceMiles: data.distanceMiles,
-        distanceKm: data.distanceKm,
-        durationSeconds: data.durationSeconds,
-        averageSpeedMph: data.averageSpeedMph,
-        maxSpeedMph: data.maxSpeedMph
-      },
-      status: 'completed'
+        accuracy: data.endLocation.accuracy ?? 0,
+        timestamp: data.endLocation.timestamp,
+      } : undefined,
+      startTime: data.route.length > 0 ? data.route[0].timestamp : Date.now(),
+      lastUpdate: Date.now(),
+      elapsedTime: data.durationSeconds * 1000, // backend espera ms
+      currentDistance: data.distanceMiles,
+      currentSpeed: 0,
+    };
+
+    // Estadísticas que coinciden con TripStatisticsDto del backend
+    const statistics: TripStatisticsDto = {
+      distanceMiles: data.distanceMiles,
+      distanceKm: data.distanceKm,
+      durationSeconds: data.durationSeconds,
+      totalPoints: data.route.length,
+    };
+
+    const payload = {
+      tripPayload,
+      statistics,
     };
 
     if (environment.debug.logApi) {
-      console.log('📦 Payload a enviar:', JSON.stringify(payload, null, 2));
+      console.log('Payload a enviar:', JSON.stringify(payload, null, 2));
     }
 
     return this.http.post<ApiResponse<Trip>>(url, payload).pipe(
@@ -216,22 +240,22 @@ export class TripService {
         return response.data;
       }),
       tap(trip => {
-        console.log('✅ Recorrido guardado exitosamente:', trip.id);
-        console.log(`📊 Distancia: ${data.distanceMiles.toFixed(2)} millas`);
-        console.log(`⏱️ Duración: ${Math.floor(data.durationSeconds / 60)} minutos`);
-        
+        console.log('Recorrido guardado exitosamente:', trip.id);
+        console.log(`Distancia: ${data.distanceMiles.toFixed(2)} millas`);
+        console.log(`Duracion: ${Math.floor(data.durationSeconds / 60)} minutos`);
+
         // Actualizar cache local
         this.addTripToCache(trip);
-        
+
         // Refrescar estadísticas
         this.refreshStatistics();
       }),
       catchError(error => {
-        console.error('❌ Error enviando datos a la API:', error);
-        
-        // Guardar localmente para sincronizar después
+        console.error('Error enviando datos a la API:', error);
+
+        // Guardar localmente para sincronizar despues
         this.savePendingTrip(data);
-        
+
         throw error;
       })
     );

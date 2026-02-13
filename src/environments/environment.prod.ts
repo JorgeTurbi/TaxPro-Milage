@@ -12,7 +12,7 @@ export const environment = {
   // CONFIGURACIÓN DE API - PRODUCCIÓN
   // ===========================================
 
-  apiUrl: 'https://api.taxprosuite.com/api',
+  apiUrl: 'http://localhost:5000/api',
 
   endpoints: {
     login: '/auth/client/login',
@@ -24,7 +24,7 @@ export const environment = {
     tripById: '/trips/:id',
     tripsByDateRange: '/trips/range',
     tripStatistics: '/trips/statistics',
-    mileageLog: '/mileage/log',
+    mileageLog: '/client/tracking/create',
     mileageSummary: '/mileage/summary',
   },
 
@@ -97,7 +97,7 @@ export const environment = {
     version: '1.0.0',
     currency: 'USD',
     // TARIFA ACTUALIZADA: $0.70 por milla
-    mileageRate: 0.70,
+    mileageRate: 0.7,
     distanceUnit: 'miles',
   },
 
@@ -109,5 +109,5 @@ export const environment = {
     logGps: false,
     logApi: false,
     simulateGps: false,
-  }
+  },
 };

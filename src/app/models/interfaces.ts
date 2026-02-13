@@ -113,6 +113,7 @@ export interface CreateTripData {
 
 export interface FinishTripData {
   tripId: string;
+  purpose: TripPurpose;
   endLocation: GpsPoint;
   route: GpsPoint[];
   distanceMiles: number;
@@ -206,6 +207,8 @@ export interface TripFilters {
 // ===========================================
 
 export interface TrackingState {
+  tripId?: string;       // ID único del trip (UUID generado al iniciar)
+  purpose?: TripPurpose; // Propósito del viaje (business, medical, etc.)
   isTracking: boolean;
   isPaused: boolean;
   currentTrip?: Trip;
@@ -243,6 +246,66 @@ export interface ShareResult {
   success: boolean;
   shareUrl?: string;
   error?: string;
+}
+
+// ===========================================
+// DTOs PARA API DE TRACKING (coinciden con backend C#)
+// ===========================================
+
+/** Coincide con GeoPointDto del backend */
+export interface GeoPointDto {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  timestamp: number; // epoch ms
+}
+
+/** Coincide con GeoPositionDto del backend */
+export interface GeoPositionDto {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  timestamp: number; // epoch ms
+}
+
+/** Coincide con TripPayloadDto del backend */
+export interface TripPayloadDto {
+  tripId: string;        // UUID único del trip
+  customerId: string;    // nameid del JWT (identifica al customer)
+  companyId: string;     // companyId del JWT (identifica la company)
+  purpose: string;       // Propósito del viaje (business, medical, charity, moving, personal)
+  isTracking: boolean;
+  isPaused: boolean;
+  routePoints: GeoPointDto[];
+  currentPosition?: GeoPositionDto;
+  startTime: number;   // epoch ms
+  lastUpdate: number;   // epoch ms
+  elapsedTime: number;  // epoch ms
+  currentDistance: number;
+  currentSpeed: number;
+}
+
+/** Coincide con TripStatisticsDto del backend */
+export interface TripStatisticsDto {
+  distanceMiles: number;
+  distanceKm: number;
+  durationSeconds: number;
+  totalPoints: number;
+}
+
+/** Coincide con LocationDto del backend */
+export interface LocationDto {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+}
+
+/** Coincide con RoutePointDto del backend */
+export interface RoutePointDto {
+  latitude: number;
+  longitude: number;
+  timestamp: number; // epoch ms
+  accuracy: number;
 }
 
 // ===========================================

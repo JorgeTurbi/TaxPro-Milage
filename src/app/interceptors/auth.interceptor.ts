@@ -6,6 +6,9 @@
  *
  * También maneja:
  * - Redirección al login si no hay sesión válida
+ *
+ * NOTA: No inyectar CustomerAuthService aquí para evitar
+ * dependencia circular (NG0200). Solo usar CustomerTokenService.
  */
 
 import { HttpInterceptorFn, HttpRequest, HttpHandlerFn, HttpErrorResponse } from '@angular/common/http';
@@ -13,7 +16,6 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 
-import { CustomerAuthService } from '../services/customer-auth.service';
 import { CustomerTokenService } from '../services/customer-token.service';
 import { environment } from '../../environments/environment';
 
@@ -25,7 +27,6 @@ export const authInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
   next: HttpHandlerFn
 ) => {
-  const authService = inject(CustomerAuthService);
   const tokenService = inject(CustomerTokenService);
   const router = inject(Router);
 
@@ -51,9 +52,9 @@ export const authInterceptor: HttpInterceptorFn = (
   // Ejecutar la petición
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Si el error es 401 (no autorizado) o 403 (prohibido), cerrar sesión
+      // Si el error es 401 (no autorizado) o 403 (prohibido), limpiar tokens y redirigir
       if (error.status === 401 || error.status === 403) {
-        authService.logout();
+        tokenService.removeTokens();
         router.navigate(['/login']);
       }
 

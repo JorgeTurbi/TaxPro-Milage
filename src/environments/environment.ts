@@ -12,8 +12,8 @@ export const environment = {
   // CONFIGURACIÓN DE API
   // ===========================================
 
-  apiUrl: 'https://api.taxprosuite.com/api',
-
+  //apiUrl: 'https://api.taxprosuite.com/api',
+  apiUrl: 'http://localhost:5000/api',
   endpoints: {
     login: '/auth/client/login',
     logout: '/auth/client/logout',
@@ -24,7 +24,7 @@ export const environment = {
     tripById: '/trips/:id',
     tripsByDateRange: '/trips/range',
     tripStatistics: '/trips/statistics',
-    mileageLog: '/mileage/log',
+    mileageLog: '/client/tracking/create',
     mileageSummary: '/mileage/summary',
   },
 

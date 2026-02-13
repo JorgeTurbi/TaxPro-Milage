@@ -12,14 +12,15 @@ import { Preferences } from '@capacitor/preferences';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
 import { environment } from '../../environments/environment';
-import { 
-  GpsPoint, 
-  TrackingState, 
-  Trip, 
+import {
+  GpsPoint,
+  TrackingState,
+  Trip,
   TripPurpose,
-  FinishTripData 
+  FinishTripData
 } from '../models/interfaces';
 import { TripService } from './trip.service';
+import { TrackingApiService } from './tracking-api.service';
 
 // Configuración por defecto (usada si no está en environment)
 const DEFAULT_GPS_CONFIG = {
@@ -39,6 +40,7 @@ const DEFAULT_GPS_CONFIG = {
 })
 export class GpsTrackingService {
   private tripService = inject(TripService);
+  private trackingApiService = inject(TrackingApiService);
   private ngZone = inject(NgZone);
 
   // Configuración combinada (environment + defaults)
@@ -99,6 +101,10 @@ export class GpsTrackingService {
 
   // Contador de puntos ignorados para debugging
   private ignoredPointsCount: number = 0;
+
+  // Sync periódico con el API
+  private apiSyncSubscription: Subscription | null = null;
+  private readonly API_SYNC_INTERVAL_MS = 30000; // Sync cada 30 segundos
 
   constructor() {
     this.restoreTrackingState();
@@ -277,6 +283,8 @@ export class GpsTrackingService {
       this.ignoredPointsCount = 0;
 
       const newState: TrackingState = {
+        tripId: this.generateTripId(),
+        purpose,
         isTracking: true,
         isPaused: false,
         routePoints: [startPoint],
@@ -295,10 +303,10 @@ export class GpsTrackingService {
 
       await this.startPositionWatcher();
       this.startTimer();
+      this.startApiSync();
       await this.saveTrackingState();
 
-      // Solo un log al iniciar
-      console.log('✅ Tracking iniciado');
+      console.log('Tracking iniciado');
 
     } catch (error) {
       console.error('❌ Error iniciando tracking:', error);
@@ -323,6 +331,7 @@ export class GpsTrackingService {
 
     this.stopPositionWatcher();
     this.stopTimer();
+    this.stopApiSync();
     this.clearAutoStopTimeout();
   }
 
@@ -343,6 +352,7 @@ export class GpsTrackingService {
 
     await this.startPositionWatcher();
     this.startTimer();
+    this.startApiSync();
 
     this.lastMovementTime = Date.now();
     this.stoppedSince = 0;
@@ -361,6 +371,7 @@ export class GpsTrackingService {
 
     this.stopPositionWatcher();
     this.stopTimer();
+    this.stopApiSync();
     this.clearAutoStopTimeout();
     this.stopTracking$.next();
 
@@ -384,7 +395,8 @@ export class GpsTrackingService {
       }
 
       const tripData: FinishTripData = {
-        tripId: currentState.currentTrip?.id || this.generateTripId(),
+        tripId: currentState.tripId || this.generateTripId(),
+        purpose: currentState.purpose || 'business',
         endLocation: endPoint,
         route: currentState.routePoints,
         distanceMiles: currentState.currentDistance,
@@ -422,6 +434,7 @@ export class GpsTrackingService {
   async cancelTracking(): Promise<void> {
     this.stopPositionWatcher();
     this.stopTimer();
+    this.stopApiSync();
     this.clearAutoStopTimeout();
     this.stopTracking$.next();
     this.resetTrackingState();
@@ -678,6 +691,31 @@ export class GpsTrackingService {
   }
 
   // ===========================================
+  // SYNC PERIÓDICO CON API
+  // ===========================================
+
+  private startApiSync(): void {
+    this.stopApiSync();
+    this.apiSyncSubscription = interval(this.API_SYNC_INTERVAL_MS).pipe(
+      takeUntil(this.stopTracking$)
+    ).subscribe(() => {
+      const currentState = this.trackingStateSubject.value;
+      if (currentState.isTracking && !currentState.isPaused && currentState.routePoints.length > 0) {
+        this.trackingApiService.sendTripPayload(currentState).subscribe({
+          error: (err) => console.error('Error en sync periódico con API:', err)
+        });
+      }
+    });
+  }
+
+  private stopApiSync(): void {
+    if (this.apiSyncSubscription) {
+      this.apiSyncSubscription.unsubscribe();
+      this.apiSyncSubscription = null;
+    }
+  }
+
+  // ===========================================
   // UTILIDADES
   // ===========================================
 
@@ -739,8 +777,20 @@ export class GpsTrackingService {
     return maxSpeed;
   }
 
+  /**
+   * Genera un UUID v4 único para identificar el trip.
+   * Usa crypto.randomUUID() si está disponible, de lo contrario genera uno manualmente.
+   */
   private generateTripId(): string {
-    return `trip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    // Fallback: generar UUID v4 manualmente
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
   }
 
   // ===========================================

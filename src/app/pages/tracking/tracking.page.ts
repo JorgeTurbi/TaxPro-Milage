@@ -620,9 +620,8 @@ export class TrackingPage implements OnInit, OnDestroy {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   }
 
-  formatSpeed(metersPerSecond: number): string {
-    // Convertir m/s a MPH
-    const mph = metersPerSecond * 2.237;
+  formatSpeed(mph: number): string {
+    // currentSpeed del servicio ya viene en MPH
     return mph.toFixed(0);
   }
 
