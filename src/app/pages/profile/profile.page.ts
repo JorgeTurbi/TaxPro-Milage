@@ -143,19 +143,16 @@ export class ProfilePage implements OnInit {
       const data = { customerId, companyId };
 
       this.vehicleService.getProfileVehicle(data).subscribe({
-        next: (vehicle: Vehicle) => {
-          if (vehicle) {
-            this.vehicles = [vehicle];
+        next: (response: any) => {
+          if (response?.success && response?.data) {
+            this.vehicles = [response.data];
           }
-      },
+        },
         error: (error) => {
           console.error('Error cargando vehículos:', error);
         }
       });
-      const { value } = await Preferences.get({ key: 'vehicles' });
-      if (value) {
-        this.vehicles = JSON.parse(value);
-      }
+
     } catch (error) {
       console.error('Error cargando vehículos:', error);
     }

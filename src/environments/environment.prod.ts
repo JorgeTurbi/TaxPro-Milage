@@ -27,6 +27,7 @@ export const environment = {
     mileageLog: '/client/tracking/create',
     mileageSummary: '/mileage/summary',
     profileVehicle: '/client/tracking/createVehicle',
+    getProfileVehicle: '/client/tracking/getVehicle',
   },
 
   // ===========================================

@@ -26,7 +26,7 @@ export class TrackingApiService {
   private customerTokenService = inject(CustomerTokenService);
 
   urlVehicle : string = environment.apiUrl + environment.endpoints.profileVehicle;
-  urlGetVehicle : string = environment.apiUrl + environment.endpoints.profileVehicle;
+  urlGetVehicle : string = environment.apiUrl + environment.endpoints.getProfileVehicle;
 
   /**
    * Envía el payload completo del trip al backend.
