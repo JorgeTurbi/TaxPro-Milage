@@ -1,14 +1,7 @@
-/**
- * TaxPro Mileage - Servicio de API de Tracking
- * ==============================================
- * Envía los datos de tracking al backend usando los DTOs correctos:
- * TripPayloadDto, TripStatisticsDto, GeoPointDto, GeoPositionDto
- */
-
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
 import {
@@ -36,14 +29,18 @@ export class TrackingApiService {
    */
   sendTripPayload(state: TrackingState): Observable<ApiResponse<Trip>> {
     const payload = this.buildTripPayloadDto(state);
-
     const url = `${environment.apiUrl}${environment.endpoints.mileageLog}`;
 
     if (environment.debug.logApi) {
       console.log('Payload enviado al API:', JSON.stringify(payload, null, 2));
     }
 
-    return this.http.post<ApiResponse<Trip>>(url, payload);
+    return this.http.post<ApiResponse<Trip>>(url, payload).pipe(
+      catchError((error) => {
+        console.error('Error enviando datos a la API:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   /**
@@ -70,6 +67,23 @@ export class TrackingApiService {
    * Convierte el TrackingState interno al formato TripPayloadDto del backend.
    */
   buildTripPayloadDto(state: TrackingState): TripPayloadDto {
+    const decodedToken = this.customerTokenService.decodeToken();
+
+    if (!decodedToken) {
+      throw new Error('No se pudo decodificar el token JWT');
+    }
+
+    const customerId = decodedToken.nameid;
+    const companyId = decodedToken.companyId;
+
+    if (!customerId || !companyId) {
+      throw new Error('CustomerId o CompanyId no encontrado en el token');
+    }
+
+    if (!state.tripId || !state.purpose) {
+      throw new Error('TripId y Purpose son requeridos');
+    }
+
     const routePoints: GeoPointDto[] = state.routePoints.map(p => this.toGeoPointDto(p));
 
     let currentPosition: GeoPositionDto | undefined;
@@ -82,25 +96,20 @@ export class TrackingApiService {
       };
     }
 
-    // Extraer customerId (nameid) y companyId del token JWT
-    const decodedToken = this.customerTokenService.decodeToken();
-    const customerId = decodedToken?.nameid ?? '';
-    const companyId = decodedToken?.companyId ?? '';
-
     return {
-      tripId: state.tripId ?? '',
+      tripId: state.tripId,
       customerId,
       companyId,
-      purpose: state.purpose ?? 'business',
+      purpose: state.purpose,
       isTracking: state.isTracking,
       isPaused: state.isPaused,
       routePoints,
       currentPosition,
       startTime: state.startTime ?? Date.now(),
       lastUpdate: state.lastUpdate ?? Date.now(),
-      elapsedTime: state.elapsedTime,
-      currentDistance: state.currentDistance,
-      currentSpeed: state.currentSpeed,
+      elapsedTime: state.elapsedTime ?? 0,
+      currentDistance: state.currentDistance ?? 0,
+      currentSpeed: state.currentSpeed ?? 0,
     };
   }
 

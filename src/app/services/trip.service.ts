@@ -67,7 +67,7 @@ export class TripService {
     this.loadingSubject.next(true);
 
     let params = new HttpParams();
-    
+
     if (filters) {
       if (filters.startDate) params = params.set('startDate', filters.startDate);
       if (filters.endDate) params = params.set('endDate', filters.endDate);
@@ -105,7 +105,7 @@ export class TripService {
   getTripById(id: string): Observable<Trip | null> {
     // Primero buscar en cache
     const cachedTrip = this.tripsCache.value.find(t => t.id === id);
-    
+
     const url = `${environment.apiUrl}${environment.endpoints.tripById.replace(':id', id)}`;
 
     return this.http.get<ApiResponse<Trip>>(url).pipe(
@@ -172,15 +172,26 @@ export class TripService {
   }
 
   /**
-   * Finaliza un trip y envía todos los datos al backend.
-   * Construye un payload que coincide con TripPayloadDto + TripStatisticsDto del backend.
-   */
+ * Finaliza un trip y envía todos los datos al backend.
+ * Construye un payload que coincide con TripPayloadDto del backend.
+ */
   finishTrip(data: FinishTripData): Observable<Trip> {
-    console.log('Enviando datos del recorrido a la API...');
 
     const url = `${environment.apiUrl}${environment.endpoints.mileageLog}`;
 
-    // Convertir routePoints a GeoPointDto[]
+    const decodedToken = this.customerTokenService.decodeToken();
+
+    if (!decodedToken) {
+      throw new Error('No se pudo decodificar el token JWT');
+    }
+
+    const customerId = decodedToken.nameid;
+    const companyId = decodedToken.companyId;
+
+    if (!customerId || !companyId) {
+      throw new Error('CustomerId o CompanyId no encontrado en el token');
+    }
+
     const routePoints: GeoPointDto[] = data.route.map(point => ({
       latitude: point.latitude,
       longitude: point.longitude,
@@ -188,13 +199,7 @@ export class TripService {
       timestamp: point.timestamp,
     }));
 
-    // Extraer customerId (nameid) y companyId del token JWT
-    const decodedToken = this.customerTokenService.decodeToken();
-    const customerId = decodedToken?.nameid ?? '';
-    const companyId = decodedToken?.companyId ?? '';
-
-    // Construir payload que coincide con TripPayloadDto del backend
-    const tripPayload: TripPayloadDto = {
+    const payload: TripPayloadDto = {
       tripId: data.tripId,
       customerId,
       companyId,
@@ -210,52 +215,57 @@ export class TripService {
       } : undefined,
       startTime: data.route.length > 0 ? data.route[0].timestamp : Date.now(),
       lastUpdate: Date.now(),
-      elapsedTime: data.durationSeconds * 1000, // backend espera ms
+      elapsedTime: data.durationSeconds * 1000,
       currentDistance: data.distanceMiles,
       currentSpeed: 0,
-    };
-
-    // Estadísticas que coinciden con TripStatisticsDto del backend
-    const statistics: TripStatisticsDto = {
-      distanceMiles: data.distanceMiles,
-      distanceKm: data.distanceKm,
-      durationSeconds: data.durationSeconds,
-      totalPoints: data.route.length,
-    };
-
-    const payload = {
-      tripPayload,
-      statistics,
     };
 
     if (environment.debug.logApi) {
       console.log('Payload a enviar:', JSON.stringify(payload, null, 2));
     }
 
-    return this.http.post<ApiResponse<Trip>>(url, payload).pipe(
+    return this.http.post<ApiResponse<any>>(url, payload).pipe(
       map(response => {
         if (!response.success) {
           throw new Error(response.message);
         }
-        return response.data;
+
+        const trip: Trip = {
+          id: data.tripId,
+          userId: customerId,
+          vehicleId: undefined,
+          startTime: new Date(data.route[0]?.timestamp || Date.now()).toISOString(),
+          endTime: new Date().toISOString(),
+          status: 'completed',
+          purpose: data.purpose,
+          notes: undefined,
+          startLocation: data.route[0],
+          endLocation: data.endLocation,
+          route: data.route,
+          distanceMiles: data.distanceMiles,
+          distanceKm: data.distanceKm,
+          durationSeconds: data.durationSeconds,
+          averageSpeedMph: data.averageSpeedMph,
+          maxSpeedMph: data.maxSpeedMph,
+          startAddress: undefined,
+          endAddress: undefined,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        return trip;
       }),
       tap(trip => {
         console.log('Recorrido guardado exitosamente:', trip.id);
         console.log(`Distancia: ${data.distanceMiles.toFixed(2)} millas`);
         console.log(`Duracion: ${Math.floor(data.durationSeconds / 60)} minutos`);
 
-        // Actualizar cache local
         this.addTripToCache(trip);
-
-        // Refrescar estadísticas
         this.refreshStatistics();
       }),
       catchError(error => {
         console.error('Error enviando datos a la API:', error);
-
-        // Guardar localmente para sincronizar despues
         this.savePendingTrip(data);
-
         throw error;
       })
     );
@@ -405,7 +415,7 @@ export class TripService {
   private updateTripInCache(trip: Trip): void {
     const currentTrips = this.tripsCache.value;
     const index = currentTrips.findIndex(t => t.id === trip.id);
-    
+
     if (index !== -1) {
       currentTrips[index] = trip;
       this.tripsCache.next([...currentTrips]);
@@ -429,7 +439,7 @@ export class TripService {
   private filterTripsFromCache(startDate: string, endDate: string): Trip[] {
     const start = new Date(startDate).getTime();
     const end = new Date(endDate).getTime();
-    
+
     return this.tripsCache.value.filter(trip => {
       const tripDate = new Date(trip.startTime).getTime();
       return tripDate >= start && tripDate <= end;
@@ -517,23 +527,23 @@ export class TripService {
   private calculateDailyMileageFromCache(days: number): DailyMileage[] {
     const trips = this.tripsCache.value;
     const result: DailyMileage[] = [];
-    
+
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
-      
-      const dayTrips = trips.filter(t => 
+
+      const dayTrips = trips.filter(t =>
         t.startTime.split('T')[0] === dateStr
       );
-      
+
       result.push({
         date: dateStr,
         miles: dayTrips.reduce((sum, t) => sum + t.distanceMiles, 0),
         trips: dayTrips.length
       });
     }
-    
+
     return result;
   }
 
@@ -548,17 +558,17 @@ export class TripService {
     try {
       const { value } = await Preferences.get({ key: 'pending_trips' });
       const pendingTrips = value ? JSON.parse(value) : [];
-      
+
       pendingTrips.push({
         ...data,
         savedAt: new Date().toISOString()
       });
-      
+
       await Preferences.set({
         key: 'pending_trips',
         value: JSON.stringify(pendingTrips)
       });
-      
+
       console.log('💾 Trip guardado para sincronización posterior');
     } catch (error) {
       console.error('❌ Error guardando trip pendiente:', error);
@@ -571,17 +581,17 @@ export class TripService {
   async syncPendingTrips(): Promise<void> {
     try {
       const { value } = await Preferences.get({ key: 'pending_trips' });
-      
+
       if (!value) return;
-      
+
       const pendingTrips = JSON.parse(value);
-      
+
       if (pendingTrips.length === 0) return;
-      
+
       console.log(`🔄 Sincronizando ${pendingTrips.length} trips pendientes...`);
-      
+
       const successfullySync: number[] = [];
-      
+
       for (let i = 0; i < pendingTrips.length; i++) {
         try {
           await this.finishTrip(pendingTrips[i]).toPromise();
@@ -590,19 +600,19 @@ export class TripService {
           console.error(`❌ Error sincronizando trip ${i}:`, error);
         }
       }
-      
+
       // Eliminar los sincronizados exitosamente
-   const remainingTrips = pendingTrips.filter((_: any, index: number) =>
+      const remainingTrips = pendingTrips.filter((_: any, index: number) =>
         !successfullySync.includes(index)
       );
-      
+
       await Preferences.set({
         key: 'pending_trips',
         value: JSON.stringify(remainingTrips)
       });
-      
+
       console.log(`✅ ${successfullySync.length} trips sincronizados`);
-      
+
     } catch (error) {
       console.error('❌ Error sincronizando trips pendientes:', error);
     }
