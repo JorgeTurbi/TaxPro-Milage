@@ -36,6 +36,7 @@ import { ICustomerProfile } from '../../models/customer-login.interface';
 import { environment } from '../../../environments/environment';
 import { Router } from '@angular/router';
 import { CustomerTokenService } from '../../services/customer-token.service';
+import { TrackingApiService } from '../../services/tracking-api.service';
 
 @Component({
   selector: 'app-profile',
@@ -57,8 +58,10 @@ export class ProfilePage implements OnInit {
   private toastController = inject(ToastController);
   private actionSheetController = inject(ActionSheetController);
   private loadingController = inject(LoadingController);
-  private router = inject(Router);  
- private customerTokenService = inject(CustomerTokenService);
+  private router = inject(Router);
+  private customerTokenService: CustomerTokenService = inject(CustomerTokenService);
+  private vehicleService: TrackingApiService = inject(TrackingApiService);
+
   user: ICustomerProfile | null = null;
   profilePhoto: string | null = null;
   defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iIzFhMzY1ZCIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMzUiIHI9IjE4IiBmaWxsPSJ3aGl0ZSIvPjxwYXRoIGQ9Ik0yMCA4NWMwLTIwIDEzLTMwIDMwLTMwczMwIDEwIDMwIDMwIiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg==';
@@ -124,6 +127,31 @@ export class ProfilePage implements OnInit {
 
   async loadVehicles() {
     try {
+      const decodedToken = this.customerTokenService.decodeToken();
+
+      if (!decodedToken) {
+        throw new Error('No se pudo decodificar el token JWT');
+      }
+
+      const customerId = decodedToken.nameid;
+      const companyId = decodedToken.companyId;
+
+      if (!customerId || !companyId) {
+        throw new Error('CustomerId o CompanyId no encontrado en el token');
+      }
+
+      const data = { customerId, companyId };
+
+      this.vehicleService.getProfileVehicle(data).subscribe({
+        next: (vehicle: Vehicle) => {
+          if (vehicle) {
+            this.vehicles = [vehicle];
+          }
+      },
+        error: (error) => {
+          console.error('Error cargando vehículos:', error);
+        }
+      });
       const { value } = await Preferences.get({ key: 'vehicles' });
       if (value) {
         this.vehicles = JSON.parse(value);
@@ -223,6 +251,20 @@ export class ProfilePage implements OnInit {
   // ===========================================
 
   async addVehicle() {
+
+    const decodedToken = this.customerTokenService.decodeToken();
+
+    if (!decodedToken) {
+      throw new Error('No se pudo decodificar el token JWT');
+    }
+
+    const customerId = decodedToken.nameid;
+    const companyId = decodedToken.companyId;
+
+    if (!customerId || !companyId) {
+      throw new Error('CustomerId o CompanyId no encontrado en el token');
+    }
+
     const alert = await this.alertController.create({
       header: 'Agregar Vehículo',
       message: 'Todos los campos son opcionales excepto la matrícula',
@@ -244,20 +286,37 @@ export class ProfilePage implements OnInit {
             }
 
             const newVehicle: Vehicle = {
-              id: `vehicle_${Date.now()}`,
+              customerId: customerId,
+              companyId: companyId,
               plate: data.plate.trim().toUpperCase(),
-              make: data.make?.trim() || undefined,
-              model: data.model?.trim() || undefined,
-              year: data.year ? parseInt(data.year, 10) : undefined,
+              photo: data.photo || undefined,
+              make: data.make?.trim() || environment.make,
+              model: data.model?.trim() || environment.model,
+              year: data.year ? parseInt(data.year, 10) : environment.year,
+              color: data.color?.trim() || environment.color,
               currentMileage: data.currentMileage ? parseInt(data.currentMileage, 10) : 0,
-              lastUpdated: new Date().toISOString(),
-              isDefault: this.vehicles.length === 0
+              updatedAt: new Date().toDateString(),
+              isDefault: data.isDefault ? true : false
             };
 
-            this.vehicles.push(newVehicle);
-            this.saveVehicles();
-            this.showToast('Vehículo agregado');
-            return true;
+            return this.vehicleService.createVehicleProfile(newVehicle).subscribe({
+              next: async (response: boolean) => {
+                if (response) {
+                  this.showToast('The vehicle profile was created successfully');
+                  this.loadVehicles();
+                  return true;
+                }
+
+                this.showToast('The vehicle cannot be created');
+                return false;
+              },
+              error: (error) => {
+                console.error('Error adding vehicle:', error);
+                this.showToast('Error adding vehicle');
+                return false;
+              }
+            });
+            //this.saveVehicles();
           }
         }
       ]
@@ -290,7 +349,7 @@ export class ProfilePage implements OnInit {
             vehicle.model = data.model?.trim() || undefined;
             vehicle.year = data.year ? parseInt(data.year, 10) : undefined;
             vehicle.currentMileage = data.currentMileage ? parseInt(data.currentMileage, 10) : 0;
-            vehicle.lastUpdated = new Date().toISOString();
+            vehicle.updatedAt = new Date().toISOString();
 
             this.saveVehicles();
             this.showToast('Vehículo actualizado');
@@ -394,39 +453,41 @@ export class ProfilePage implements OnInit {
 
   async logout() {
     const currentCustomer = this.authService.currentCustomerSubject.value;
-                  const customerName = currentCustomer
-     ? `${currentCustomer.firstName} ${currentCustomer.lastName}`.trim()
-     : this.customerTokenService.getCustomerDisplayNameFromToken();
- 
+    const customerName = currentCustomer
+      ? `${currentCustomer.firstName} ${currentCustomer.lastName}`.trim()
+      : this.customerTokenService.getCustomerDisplayNameFromToken();
+
     const alert = await this.alertController.create({
       header: 'Cerrar Sesión',
       message: '¿Estás seguro de que deseas cerrar sesión?',
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
-        { text: 'Cerrar Sesión', role: 'destructive', handler: () => this.authService.logout().subscribe({
-          next: async (item:boolean) => {  
-            if(item){
-    await this.router.navigate(['/login'], { replaceUrl: true });
-            }           
-          
-          },
-          error: async (error) => {
-            console.error('Error cerrando sesión:', error);
-            await this.showToast('Error cerrando sesión', 'danger');
-          },
-          complete: () => {
-        this.customerTokenService.removeTokens();        
-        this.authService .currentCustomerSubject.next(null);
+        {
+          text: 'Cerrar Sesión', role: 'destructive', handler: () => this.authService.logout().subscribe({
+            next: async (item: boolean) => {
+              if (item) {
+                await this.router.navigate(['/login'], { replaceUrl: true });
+              }
 
-       const keysToRemove = Object.keys(localStorage).filter((key) =>
-         key.startsWith('customer_') ||
-         key.includes('chat_') ||
-          key.includes('webrtc_') ||
-         key.includes('TokenCloud')
-       );
-        keysToRemove.forEach((key) => localStorage.removeItem(key));
-  }, 
-        }) }
+            },
+            error: async (error) => {
+              console.error('Error cerrando sesión:', error);
+              await this.showToast('Error cerrando sesión', 'danger');
+            },
+            complete: () => {
+              this.customerTokenService.removeTokens();
+              this.authService.currentCustomerSubject.next(null);
+
+              const keysToRemove = Object.keys(localStorage).filter((key) =>
+                key.startsWith('customer_') ||
+                key.includes('chat_') ||
+                key.includes('webrtc_') ||
+                key.includes('TokenCloud')
+              );
+              keysToRemove.forEach((key) => localStorage.removeItem(key));
+            },
+          })
+        }
       ]
     });
     await alert.present();

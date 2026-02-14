@@ -20,7 +20,9 @@ export interface User {
 }
 
 export interface Vehicle {
-  id: string;
+  id?: string;
+  customerId: string;
+  companyId: string;
   plate: string;
   photo?: string;
   make?: string;
@@ -28,8 +30,13 @@ export interface Vehicle {
   year?: number;
   color?: string;
   currentMileage: number;
-  lastUpdated: string;
+  updatedAt: string;
   isDefault: boolean;
+}
+
+export interface IPersonalData {
+  customerId: string;
+  companyId: string;
 }
 
 export interface LoginCredentials {

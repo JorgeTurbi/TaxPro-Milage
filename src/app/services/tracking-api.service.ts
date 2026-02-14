@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { Observable, throwError, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
@@ -13,6 +13,8 @@ import {
   TrackingState,
   GpsPoint,
   Trip,
+  Vehicle,
+  IPersonalData,
 } from '../models/interfaces';
 import { CustomerTokenService } from './customer-token.service';
 
@@ -22,6 +24,9 @@ import { CustomerTokenService } from './customer-token.service';
 export class TrackingApiService {
   private http = inject(HttpClient);
   private customerTokenService = inject(CustomerTokenService);
+
+  urlVehicle : string = environment.apiUrl + environment.endpoints.profileVehicle;
+  urlGetVehicle : string = environment.apiUrl + environment.endpoints.profileVehicle;
 
   /**
    * Envía el payload completo del trip al backend.
@@ -123,5 +128,17 @@ export class TrackingApiService {
       accuracy: point.accuracy ?? 0,
       timestamp: point.timestamp,
     };
+  }
+
+  createVehicleProfile(payload: Vehicle): Observable<boolean> {
+    if (payload.plate.length > 0 || payload.plate !== '' || payload.plate !== undefined) {
+      return this.http.post<boolean>(this.urlVehicle, payload);
+    }
+
+    return of(false);
+  }
+
+  getProfileVehicle(data: IPersonalData): Observable<Vehicle> {
+    return this.http.post<Vehicle>(this.urlGetVehicle, data);
   }
 }
