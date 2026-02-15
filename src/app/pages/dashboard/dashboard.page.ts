@@ -49,11 +49,12 @@ import { Subscription } from 'rxjs';
 import { CustomerAuthService } from '../../services/customer-auth.service';
 import { TripService } from '../../services/trip.service';
 import { GpsTrackingService } from '../../services/gps-tracking.service';
-import { User, UserStatistics, Trip, DailyMileage, TripProfileData } from '../../models/interfaces';
+import { User, UserStatistics, Trip, DailyMileage, TripProfileData, IIRSConfiguration } from '../../models/interfaces';
 import { ICustomerProfile } from '../../models/customer-login.interface';
 import { environment } from '../../../environments/environment';
 import { CustomerTokenService } from '../../services/customer-token.service';
 import { TrackingApiService } from '../../services/tracking-api.service';
+import { Preferences } from '@capacitor/preferences';
 
 // Registrar componentes de Chart.js
 Chart.register(...registerables);
@@ -106,10 +107,11 @@ export class DashboardPage implements OnInit, OnDestroy {
   // Datos de demostración para el widget estilo Uber
   demoTrip: Trip = {
     id: 'demo-1',
-    userId: 'user-1',
+    customerid: 'user-1',
+    companyid: 'company-1',
     startTime: new Date().toISOString(),
     endTime: new Date(new Date().getTime() + 25 * 60000).toISOString(),
-    status: 'completed',
+    status: 'Completed',
     purpose: 'business',
     distanceMiles: 8.52,
     distanceKm: 13.71,
@@ -139,9 +141,41 @@ export class DashboardPage implements OnInit, OnDestroy {
 
 
   ngOnInit(): void {
+
+    const decodedToken = this.customerTokenService.decodeToken();
+
+    if (!decodedToken) {
+      throw new Error('No se pudo decodificar el token JWT');
+    }
+
+    const customerId = decodedToken.nameid;
+    const companyId = decodedToken.companyId;
+
+    if (!customerId || !companyId) {
+      throw new Error('CustomerId o CompanyId no encontrado en el token');
+    }
+
+    const data = { customerId, companyId };
+
+    this.loadIRSConfiguration(data);
     this.setupSubscriptions();
     this.loadUserProfile();
     this.loadData();
+  }
+
+  private loadIRSConfiguration(payload: TripProfileData) {
+    this.tripService.getIRSConfiguration(payload).subscribe({
+      next: (response: IIRSConfiguration) => {
+        Preferences.set({
+          key: 'irsConfiguration',
+          value: JSON.stringify(response)
+        });
+        console.log('IRS Configuration:', response);
+      },
+      error: (error) => {
+        console.error('Error al obtener la configuración IRS:', error);
+      }
+    })
   }
 
   /**
@@ -238,32 +272,18 @@ export class DashboardPage implements OnInit, OnDestroy {
         }
       });
 
+      await this.tripService.getTrips({
+        page: 1,
+        limit: 10,
+        sortBy: 'date',
+        sortOrder: 'desc'
+      }).toPromise();
+
       // Cargar estadísticas
       await this.tripService.getStatistics().toPromise();
 
-      // Cargar recorridos recientes
+      // Obtener recorridos recientes del cache (ya poblado)
       this.recentTrips = this.tripService.getRecentTrips();
-
-      // DEMO DATA: Mock para visualizar el widget estilo Uber si no hay datos
-      // if (this.recentTrips.length === 0) {
-      //   this.recentTrips = [{
-      //     id: 'demo-1',
-      //     userId: 'user-1',
-      //     startTime: new Date().toISOString(),
-      //     endTime: new Date(new Date().getTime() + 25 * 60000).toISOString(), // +25 mins
-      //     status: 'completed',
-      //     purpose: 'business',
-      //     distanceMiles: 8.5,
-      //     distanceKm: 13.6,
-      //     durationSeconds: 1500, // 25 min
-      //     startLocation: { latitude: 0, longitude: 0, timestamp: Date.now() },
-      //     startAddress: '123 Market St, San Francisco',
-      //     endAddress: '456 Tech Park, Palo Alto',
-      //     route: [],
-      //     createdAt: new Date().toISOString(),
-      //     updatedAt: new Date().toISOString()
-      //   }];
-      // }
 
       // Actualizar gráfico si existe
       if (this.chart) {
@@ -440,7 +460,6 @@ export class DashboardPage implements OnInit, OnDestroy {
     const labels: Record<string, string> = {
       'business': 'Negocio',
       'medical': 'Médico',
-      'charity': 'Caridad',
       'moving': 'Mudanza',
       'personal': 'Personal'
     };

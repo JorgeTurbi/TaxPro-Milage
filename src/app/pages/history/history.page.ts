@@ -2,7 +2,7 @@
  * ============================================================
  * HISTORY PAGE - Historial de Recorridos
  * ============================================================
- * 
+ *
  * Esta página permite al usuario:
  * - Ver todos sus viajes anteriores
  * - Filtrar por rango de fechas
@@ -10,7 +10,7 @@
  * - Buscar viajes específicos
  * - Ver resumen de estadísticas del período seleccionado
  * - Navegar al detalle de cada viaje
- * 
+ *
  * CARACTERÍSTICAS:
  * - Date picker para seleccionar rango de fechas
  * - Filtros por propósito del viaje
@@ -316,7 +316,6 @@ export class HistoryPage implements OnInit {
     const icons: Record<TripPurpose, string> = {
       business: 'briefcase-outline',
       medical: 'medkit-outline',
-      charity: 'heart-outline',
       moving: 'home-outline',
       personal: 'car-sport-outline'
     };
@@ -327,7 +326,6 @@ export class HistoryPage implements OnInit {
     const labels: Record<TripPurpose, string> = {
       business: 'Negocios',
       medical: 'Médico',
-      charity: 'Caridad',
       moving: 'Mudanza',
       personal: 'Personal'
     };
@@ -336,18 +334,20 @@ export class HistoryPage implements OnInit {
 
   getStatusColor(status: TripStatus): string {
     const colors: Record<TripStatus, string> = {
-      'in_progress': 'warning',
-      'completed': 'success',
-      'cancelled': 'danger'
+      'InProgress': 'warning',
+      'Completed': 'success',
+      'Cancelled': 'danger',
+      'Paused': 'medium'
     };
     return colors[status] || 'medium';
   }
 
   getStatusLabel(status: TripStatus): string {
     const labels: Record<TripStatus, string> = {
-      'in_progress': 'En curso',
-      'completed': 'Completado',
-      'cancelled': 'Cancelado'
+      'InProgress': 'En Progreso',
+      'Completed': 'Completado',
+      'Cancelled': 'Cancelado',
+      'Paused': 'Pausado'
     };
     return labels[status] || 'Desconocido';
   }

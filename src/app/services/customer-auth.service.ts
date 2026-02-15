@@ -20,6 +20,10 @@ import { IApiResponse } from '../models/IApiResponse';
 import { ICustomerForceLogoutRequest, ICustomerForceLogoutResponse } from '../models/customer-force-logout.interface';
 import { NativeBiometric, BiometryType } from '@capgo/capacitor-native-biometric';
 import { Capacitor } from '@capacitor/core';
+import { Preferences } from '@capacitor/preferences';
+import { TripService } from './trip.service';
+import { TrackingApiService } from './tracking-api.service';
+import { GpsTrackingService } from './gps-tracking.service';
 
 export { BiometryType } from '@capgo/capacitor-native-biometric';
 
@@ -32,8 +36,10 @@ export class CustomerAuthService {
   // private cloudTokenService = inject(CloudTokenService);
   // private toastService = inject(ToastService);
   // private socketConnection = inject(SocketConnectionService);
- // private mediaCacheService = inject(MediaCacheService);
+  // private mediaCacheService = inject(MediaCacheService);
   // private notificationWS = inject(NotificationWebSocketService);
+  private tripService : TripService = inject(TripService);
+  private trackingService : GpsTrackingService = inject(GpsTrackingService);
   private router = inject(Router);
 
   public currentCustomerSubject = new BehaviorSubject<ICustomerProfile | null>(null);
@@ -50,8 +56,8 @@ export class CustomerAuthService {
   public assignmentChanged$ = this.assignmentChangedSubject.asObservable();
 
   constructor() {
-  
-    
+
+
 
     const token = this.customerTokenService.token;
     if (token) {
@@ -164,18 +170,89 @@ export class CustomerAuthService {
       );
   }
 
-   logout(): Observable<boolean> {
+  logout(): Observable<boolean> {
+    this.clearInMemoryState();
 
-    return  this.http.post<boolean>(`${environment.apiUrl}/auth/client/logout`,{});
+    this.clearClientStorage();
 
+    return this.http.post<boolean>(`${environment.apiUrl}/auth/client/logout`, {}).pipe(
+      catchError(error => {
+        console.warn('⚠️ Error al notificar logout al servidor (continuando con logout local):', error);
+        return of(true);
+      }),
+      tap(() => {
+        this.router.navigate(['/login']);
+      })
+    );
   }
+
+  /**
+ * Limpiar estado en memoria ANTES de limpiar storage
+ */
+  private clearInMemoryState(): void {
+    this.currentCustomerSubject.next(null);
+
+    // Limpiar cache de trips si existe
+    if (this.tripService) {
+      this.tripService.clearCache();
+    }
+
+    // Detener tracking si está activo
+    if (this.trackingService) {
+      this.trackingService.stopTracking();
+    }
+  }
+
+  private async clearClientStorage(): Promise<void> {
+    try {
+      // 1) Capacitor Preferences - limpiar todo
+      await Preferences.clear();
+
+      // 2) Web storage - limpiar todo
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // 3) IndexedDB - limpiar bases de datos (si usas)
+      if ('indexedDB' in window) {
+        try {
+          const databases = await indexedDB.databases();
+          await Promise.all(
+            databases.map(db => {
+              if (db.name) {
+                return new Promise((resolve, reject) => {
+                  const request = indexedDB.deleteDatabase(db.name!);
+                  request.onsuccess = () => resolve(true);
+                  request.onerror = () => reject(request.error);
+                });
+              }
+              return Promise.resolve();
+            })
+          );
+        } catch (error) {
+          console.warn('⚠️ Error limpiando IndexedDB:', error);
+        }
+      }
+
+      // 4) Cache Storage (PWA / service worker)
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+
+      console.log('✅ Storage limpiado exitosamente');
+    } catch (error) {
+      console.error('❌ Error limpiando storage:', error);
+    }
+  }
+
+
   // async logout(): Promise<void> {
   //   const currentCustomer = this.currentCustomerSubject.value;
   //   const customerName = currentCustomer
   //     ? `${currentCustomer.firstName} ${currentCustomer.lastName}`.trim()
   //     : this.customerTokenService.getCustomerDisplayNameFromToken();
 
-   
+
 
   //   const localLogout$ = this.http
   //     .post(`${environment.apiUrl}/auth/client/logout`, {})
@@ -189,18 +266,18 @@ export class CustomerAuthService {
 
 
   //   forkJoin({
-  //     local: localLogout$    
+  //     local: localLogout$
   //   }).subscribe({
   //     next: (results) => {
   //       console.log('Customer logout completed from all services.');
   //     },
   //     error: (error) => {
   //       console.error('Error during customer logout process:', error);
-       
+
 
   //     },
   //     complete: () => {
-  //       this.customerTokenService.removeTokens();        
+  //       this.customerTokenService.removeTokens();
   //       this.currentCustomerSubject.next(null);
 
   //       const keysToRemove = Object.keys(localStorage).filter((key) =>
@@ -214,7 +291,7 @@ export class CustomerAuthService {
   //   });
   // }
 
-  
+
   forceLogout(request: ICustomerForceLogoutRequest): Observable<IApiResponse<ICustomerForceLogoutResponse>> {
     return this.http
       .post<IApiResponse<ICustomerForceLogoutResponse>>(
@@ -283,9 +360,9 @@ export class CustomerAuthService {
   clearStorageBeforeLogin(): void {
     const keysToRemove = Object.keys(localStorage).filter((key) =>
       (key.startsWith('customer_') ||
-      key.includes('chat_') ||
-      key.includes('webrtc_') ||
-      key.includes('TokenCloud')) &&
+        key.includes('chat_') ||
+        key.includes('webrtc_') ||
+        key.includes('TokenCloud')) &&
       !key.includes('biometric_')
     );
     keysToRemove.forEach((key) => localStorage.removeItem(key));

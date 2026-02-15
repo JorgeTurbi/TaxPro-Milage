@@ -30,6 +30,7 @@ import {
   TripStatisticsDto,
   GeoPointDto,
   TripProfileData,
+  IIRSConfiguration,
 } from '../models/interfaces';
 import { CustomerTokenService } from './customer-token.service';
 import { TrackingApiService } from './tracking-api.service';
@@ -71,25 +72,35 @@ export class TripService {
   getTrips(filters?: TripFilters): Observable<Trip[]> {
     this.loadingSubject.next(true);
 
-    let params = new HttpParams();
+    const decodedToken = this.customerTokenService.decodeToken();
 
-    if (filters) {
-      if (filters.startDate) params = params.set('startDate', filters.startDate);
-      if (filters.endDate) params = params.set('endDate', filters.endDate);
-      if (filters.purpose) params = params.set('purpose', filters.purpose);
-      if (filters.status) params = params.set('status', filters.status);
-      if (filters.page) params = params.set('page', filters.page.toString());
-      if (filters.limit) params = params.set('limit', filters.limit.toString());
-      if (filters.sortBy) params = params.set('sortBy', filters.sortBy);
-      if (filters.sortOrder) params = params.set('sortOrder', filters.sortOrder);
+    if (!decodedToken) {
+      return throwError(() => new Error('No se pudo decodificar el token JWT'));
     }
 
-    const url = `${environment.apiUrl}${environment.endpoints.trips}`;
+    const customerId = decodedToken.nameid;
+    const companyId = decodedToken.companyId;
 
-    return this.http.get<PaginatedResponse<Trip>>(url, { params }).pipe(
+    const payload = {
+      customerId,
+      companyId,
+      startDate: filters?.startDate,
+      endDate: filters?.endDate,
+      purpose: filters?.purpose,
+      status: filters?.status,
+      minDistance: filters?.minDistance,
+      maxDistance: filters?.maxDistance,
+      page: filters?.page || 1,
+      limit: filters?.limit || 20,
+      sortBy: filters?.sortBy || 'date',
+      sortOrder: filters?.sortOrder || 'desc'
+    };
+
+    const url = environment.apiUrl + environment.endpoints.trips;
+
+    return this.http.post<PaginatedResponse<Trip>>(url, payload).pipe(
       tap(response => {
         if (response.success) {
-          // Actualizar cache
           this.tripsCache.next(response.data);
           this.saveTripsToCache(response.data);
         }
@@ -97,7 +108,6 @@ export class TripService {
       map(response => response.data),
       catchError(error => {
         console.error('❌ Error obteniendo trips:', error);
-        // Retornar datos del cache si hay error
         return of(this.tripsCache.value);
       }),
       tap(() => this.loadingSubject.next(false))
@@ -111,9 +121,24 @@ export class TripService {
     // Primero buscar en cache
     const cachedTrip = this.tripsCache.value.find(t => t.id === id);
 
-    const url = `${environment.apiUrl}${environment.endpoints.tripById.replace(':id', id)}`;
+    const decodedToken = this.customerTokenService.decodeToken();
 
-    return this.http.get<ApiResponse<Trip>>(url).pipe(
+    if (!decodedToken) {
+      return throwError(() => new Error('No se pudo decodificar el token JWT'));
+    }
+
+    const customerId = decodedToken.nameid;
+    const companyId = decodedToken.companyId;
+
+    const payload = {
+      tripId: id,
+      customerId,
+      companyId
+    };
+
+    const url = environment.apiUrl + environment.endpoints.tripById;
+
+    return this.http.post<ApiResponse<Trip>>(url, payload).pipe(
       map(response => response.success ? response.data : null),
       catchError(error => {
         console.error('❌ Error obteniendo trip:', error);
@@ -381,11 +406,12 @@ export class TripService {
             // Construir Trip local
             const trip: Trip = {
               id: data.tripId,
-              userId: customerId,
+              customerid: customerId,
+              companyid: companyId,
               vehicleId,
               startTime: new Date(data.route[0]?.timestamp || Date.now()).toISOString(),
               endTime: new Date().toISOString(),
-              status: 'completed',
+              status: 'Completed',
               purpose: data.purpose,
               notes: undefined,
               startLocation: data.route[0],
@@ -465,6 +491,12 @@ export class TripService {
     );
   }
 
+  getIRSConfiguration(payload: TripProfileData): Observable<IIRSConfiguration> {
+    const url = environment.apiUrl + environment.endpoints.irsConfiguration;
+
+    return this.http.post<IIRSConfiguration>(url, payload);
+  }
+
   // ===========================================
   // ESTADÍSTICAS
   // ===========================================
@@ -475,12 +507,30 @@ export class TripService {
   getStatistics(): Observable<UserStatistics> {
     const url = `${environment.apiUrl}${environment.endpoints.tripStatistics}`;
 
-    return this.http.get<ApiResponse<UserStatistics>>(url).pipe(
+    const decodedToken = this.customerTokenService.decodeToken();
+
+    if (!decodedToken) {
+      return throwError(() => new Error('No se pudo decodificar el token JWT'));
+    }
+
+    const customerId = decodedToken.nameid;
+    const companyId = decodedToken.companyId;
+
+    if (!customerId || !companyId) {
+      return throwError(() => new Error('CustomerId o CompanyId no encontrado en el token'));
+    }
+
+    const payload: TripProfileData = {
+      customerId,
+      companyId,
+    };
+
+    return this.http.post<ApiResponse<UserStatistics>>(url, payload).pipe(
       map(response => {
         if (!response.success) {
           throw new Error(response.message);
         }
-        return response.data;
+        return response.data!;
       }),
       tap(stats => {
         this.statisticsSubject.next(stats);
@@ -656,7 +706,6 @@ export class TripService {
     const milesByPurpose = {
       business: trips.filter(t => t.purpose === 'business').reduce((sum, t) => sum + t.distanceMiles, 0),
       medical: trips.filter(t => t.purpose === 'medical').reduce((sum, t) => sum + t.distanceMiles, 0),
-      charity: trips.filter(t => t.purpose === 'charity').reduce((sum, t) => sum + t.distanceMiles, 0),
       moving: trips.filter(t => t.purpose === 'moving').reduce((sum, t) => sum + t.distanceMiles, 0),
       personal: trips.filter(t => t.purpose === 'personal').reduce((sum, t) => sum + t.distanceMiles, 0),
     };
@@ -793,5 +842,20 @@ export class TripService {
    */
   getCurrentStatistics(): UserStatistics | null {
     return this.statisticsSubject.value;
+  }
+
+  /**
+ * Limpia todo el cache de trips (llamado en logout)
+ */
+  clearCache(): void {
+    this.tripsCache.next([]);
+    this.statisticsSubject.next(null);
+    this.loadingSubject.next(false);
+
+    // Limpiar localStorage de trips
+    localStorage.removeItem('trips_cache');
+    localStorage.removeItem('statistics_cache');
+
+    console.log('🧹 Cache de trips limpiado');
   }
 }

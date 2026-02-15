@@ -84,12 +84,13 @@ export interface LatLng {
 // MODELOS DE RECORRIDOS (TRIPS)
 // ===========================================
 
-export type TripStatus = 'in_progress' | 'completed' | 'cancelled';
-export type TripPurpose = 'business' | 'medical' | 'charity' | 'moving' | 'personal';
+export type TripStatus = 'InProgress' | 'Completed' | 'Paused' | 'Cancelled';
+export type TripPurpose = 'business' | 'medical' | 'moving' | 'personal';
 
 export interface Trip {
   id: string;
-  userId: string;
+  customerid: string;
+  companyid: string;
   vehicleId?: string;
   startTime: string;
   endTime?: string;
@@ -152,7 +153,6 @@ export interface UserStatistics {
   milesByPurpose: {
     business: number;
     medical: number;
-    charity: number;
     moving: number;
     personal: number;
   };
@@ -164,7 +164,7 @@ export interface DailyMileage {
   tripsCount: number;
 }
 
-export interface TripProfileData{
+export interface TripProfileData {
   companyId: string;
   customerId: string;
 }
@@ -331,4 +331,17 @@ export interface OperationResult<T = void> {
   success: boolean;
   data?: T;
   error?: string;
+}
+
+export interface IIRSConfiguration {
+  id: string;          // GUID
+  companyId: string;   // GUID
+  customerId: string | null; // GUID o null
+  taxUserId: string;   // GUID
+  name: string | null;
+  currency: string | null;
+  mileageRate: number; // decimal en backend
+  distanceUnit: string; // ej: "miles" | "km" (si quieres lo tipamos)
+  isActive: boolean;
+  isAll: boolean;
 }

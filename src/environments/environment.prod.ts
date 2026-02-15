@@ -20,14 +20,15 @@ export const environment = {
     miltilogin: '/auth/client/login/select-company',
     //refreshToken: '/auth/refresh',
     userProfile: '/auth/client/profile',
-    trips: '/trips',
-    tripById: '/trips/:id',
+    trips: '/client/tracking/getTrips',
+    tripById: '/client/tracking/getTripById',
     tripsByDateRange: '/trips/range',
-    tripStatistics: '/trips/statistics',
+    tripStatistics: '/client/tracking/getUserStatistics',
     mileageLog: '/client/tracking/create',
     mileageSummary: '/client/tracking/getMilesLastSevenDays',
     profileVehicle: '/client/tracking/createVehicle',
     getProfileVehicle: '/client/tracking/getVehicle',
+    irsConfiguration: '/client/tracking/getIRSMovilConfiguration',
   },
 
   // ===========================================

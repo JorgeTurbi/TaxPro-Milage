@@ -196,12 +196,6 @@ export class TrackingPage implements OnInit, OnDestroy {
           label: 'Médico',
           value: 'medical'
         },
-        // {
-        //   name: 'purpose',
-        //   type: 'radio',
-        //   label: 'Caridad',
-        //   value: 'charity'
-        // },
         {
           name: 'purpose',
           type: 'radio',
@@ -648,7 +642,6 @@ export class TrackingPage implements OnInit, OnDestroy {
     const icons: Record<TripPurpose, string> = {
       business: 'briefcase-outline',
       medical: 'medkit-outline',
-      charity: 'heart-outline',
       moving: 'home-outline',
       personal: 'car-sport-outline'
     };
@@ -659,7 +652,6 @@ export class TrackingPage implements OnInit, OnDestroy {
     const labels: Record<TripPurpose, string> = {
       business: 'Negocios',
       medical: 'Médico',
-      charity: 'Caridad',
       moving: 'Mudanza',
       personal: 'Personal'
     };
@@ -670,7 +662,6 @@ export class TrackingPage implements OnInit, OnDestroy {
     const colors: Record<TripPurpose, string> = {
       business: 'primary',
       medical: 'danger',
-      charity: 'tertiary',
       moving: 'secondary',
       personal: 'medium'
     };

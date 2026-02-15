@@ -352,7 +352,6 @@ export class TripDetailPage implements OnInit, AfterViewInit {
     const labels: Record<TripPurpose, string> = {
       business: 'Negocios',
       medical: 'Médico',
-      charity: 'Caridad',
       moving: 'Mudanza',
       personal: 'Personal'
     };
@@ -363,7 +362,6 @@ export class TripDetailPage implements OnInit, AfterViewInit {
     const colors: Record<TripPurpose, string> = {
       business: 'primary',
       medical: 'danger',
-      charity: 'success',
       moving: 'warning',
       personal: 'medium'
     };
