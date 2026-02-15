@@ -25,7 +25,7 @@ export const environment = {
     tripsByDateRange: '/trips/range',
     tripStatistics: '/trips/statistics',
     mileageLog: '/client/tracking/create',
-    mileageSummary: '/mileage/summary',
+    mileageSummary: '/client/tracking/getMilesLastSevenDays',
     profileVehicle: '/client/tracking/createVehicle',
     getProfileVehicle: '/client/tracking/getVehicle',
   },

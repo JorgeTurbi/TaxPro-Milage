@@ -25,8 +25,10 @@ export class TrackingApiService {
   private http = inject(HttpClient);
   private customerTokenService = inject(CustomerTokenService);
 
-  urlVehicle : string = environment.apiUrl + environment.endpoints.profileVehicle;
-  urlGetVehicle : string = environment.apiUrl + environment.endpoints.getProfileVehicle;
+  urlVehicle: string = environment.apiUrl + environment.endpoints.profileVehicle;
+  urlGetVehicle: string = environment.apiUrl + environment.endpoints.getProfileVehicle;
+
+  dataVehicle = '';
 
   /**
    * Envía el payload completo del trip al backend.
@@ -81,9 +83,23 @@ export class TrackingApiService {
     const customerId = decodedToken.nameid;
     const companyId = decodedToken.companyId;
 
+    const profileData = { customerId, companyId };
+
     if (!customerId || !companyId) {
       throw new Error('CustomerId o CompanyId no encontrado en el token');
     }
+
+    this.getProfileVehicle(profileData).subscribe({
+      next: (vehicle) => {
+        if (vehicle && vehicle.id) {
+          this.dataVehicle = vehicle.id?.toString()!;
+        }
+        console.log('Vehículo perfil cargado:', vehicle);
+      },
+      error: (error) => {
+        console.error('Error cargando vehículo perfil:', error);
+      }
+    });
 
     if (!state.tripId || !state.purpose) {
       throw new Error('TripId y Purpose son requeridos');
@@ -105,6 +121,7 @@ export class TrackingApiService {
       tripId: state.tripId,
       customerId,
       companyId,
+      vehicleId: this.dataVehicle,
       purpose: state.purpose,
       isTracking: state.isTracking,
       isPaused: state.isPaused,

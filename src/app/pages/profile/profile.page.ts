@@ -293,7 +293,7 @@ export class ProfilePage implements OnInit {
               color: data.color?.trim() || environment.color,
               currentMileage: data.currentMileage ? parseInt(data.currentMileage, 10) : 0,
               updatedAt: new Date().toDateString(),
-              isDefault: data.isDefault ? true : false
+              isDefault: true
             };
 
             return this.vehicleService.createVehicleProfile(newVehicle).subscribe({

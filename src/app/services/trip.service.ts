@@ -11,7 +11,7 @@
 
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, BehaviorSubject, of, from } from 'rxjs';
+import { Observable, BehaviorSubject, of, from, throwError } from 'rxjs';
 import { map, catchError, tap, switchMap } from 'rxjs/operators';
 import { Preferences } from '@capacitor/preferences';
 
@@ -29,8 +29,10 @@ import {
   TripPayloadDto,
   TripStatisticsDto,
   GeoPointDto,
+  TripProfileData,
 } from '../models/interfaces';
 import { CustomerTokenService } from './customer-token.service';
+import { TrackingApiService } from './tracking-api.service';
 
 @Injectable({
   providedIn: 'root'
@@ -38,6 +40,7 @@ import { CustomerTokenService } from './customer-token.service';
 export class TripService {
   private http = inject(HttpClient);
   private customerTokenService = inject(CustomerTokenService);
+  private vehicleService: TrackingApiService = inject(TrackingApiService);
 
   // Cache de viajes
   private tripsCache = new BehaviorSubject<Trip[]>([]);
@@ -50,6 +53,8 @@ export class TripService {
   // Estado de carga
   private loadingSubject = new BehaviorSubject<boolean>(false);
   public loading$ = this.loadingSubject.asObservable();
+
+  dataVehicle = '';
 
   constructor() {
     // Cargar trips desde cache local al iniciar
@@ -171,89 +176,235 @@ export class TripService {
     );
   }
 
+  //   /**
+  //  * Finaliza un trip y envía todos los datos al backend.
+  //  * Construye un payload que coincide con TripPayloadDto del backend.
+  //  */
+  //   finishTrip(data: FinishTripData): Observable<Trip> {
+
+  //     const url = `${environment.apiUrl}${environment.endpoints.mileageLog}`;
+
+  //     const decodedToken = this.customerTokenService.decodeToken();
+
+  //     if (!decodedToken) {
+  //       throw new Error('No se pudo decodificar el token JWT');
+  //     }
+
+  //     const customerId = decodedToken.nameid;
+  //     const companyId = decodedToken.companyId;
+
+  //     const profileData = { customerId, companyId };
+
+  //     if (!customerId || !companyId) {
+  //       throw new Error('CustomerId o CompanyId no encontrado en el token');
+  //     }
+
+  //     this.vehicleService.getProfileVehicle(profileData).subscribe({
+  //       next: (vehicle) => {
+  //         console.log('Cargando estadísticas de millas para los últimos 7 días con:', vehicle);
+  //         if (vehicle && vehicle.id) {
+  //           this.dataVehicle = vehicle.id?.toString()!;
+  //         }
+  //         console.log('Vehículo perfil cargado:', vehicle);
+  //       },
+  //       error: (error) => {
+  //         console.error('Error cargando vehículo perfil:', error);
+  //       }
+  //     });
+
+  //     const routePoints: GeoPointDto[] = data.route.map(point => ({
+  //       latitude: point.latitude,
+  //       longitude: point.longitude,
+  //       accuracy: point.accuracy ?? 0,
+  //       timestamp: point.timestamp,
+  //     }));
+
+  //     if (this.dataVehicle == undefined || this.dataVehicle === '' || this.dataVehicle === null) {
+  //       const obj = {} as Trip;
+  //       return obj as unknown as Observable<Trip>;
+  //     }
+
+  //     const payload: TripPayloadDto = {
+  //       tripId: data.tripId,
+  //       customerId,
+  //       companyId,
+  //       vehicleId: this.dataVehicle,
+  //       purpose: data.purpose,
+  //       isTracking: false,
+  //       isPaused: false,
+  //       routePoints,
+  //       currentPosition: routePoints.length > 0 ? {
+  //         latitude: data.endLocation.latitude,
+  //         longitude: data.endLocation.longitude,
+  //         accuracy: data.endLocation.accuracy ?? 0,
+  //         timestamp: data.endLocation.timestamp,
+  //       } : undefined,
+  //       startTime: data.route.length > 0 ? data.route[0].timestamp : Date.now(),
+  //       lastUpdate: Date.now(),
+  //       elapsedTime: data.durationSeconds * 1000,
+  //       currentDistance: data.distanceMiles,
+  //       currentSpeed: 0,
+  //     };
+
+  //     if (environment.debug.logApi) {
+  //       console.log('Payload a enviar:', JSON.stringify(payload, null, 2));
+  //     }
+
+  //     return this.http.post<ApiResponse<any>>(url, payload).pipe(
+  //       map(response => {
+  //         if (!response.success) {
+  //           throw new Error(response.message);
+  //         }
+
+  //         const trip: Trip = {
+  //           id: data.tripId,
+  //           userId: customerId,
+  //           vehicleId: this.dataVehicle,
+  //           startTime: new Date(data.route[0]?.timestamp || Date.now()).toISOString(),
+  //           endTime: new Date().toISOString(),
+  //           status: 'completed',
+  //           purpose: data.purpose,
+  //           notes: undefined,
+  //           startLocation: data.route[0],
+  //           endLocation: data.endLocation,
+  //           route: data.route,
+  //           distanceMiles: data.distanceMiles,
+  //           distanceKm: data.distanceKm,
+  //           durationSeconds: data.durationSeconds,
+  //           averageSpeedMph: data.averageSpeedMph,
+  //           maxSpeedMph: data.maxSpeedMph,
+  //           startAddress: undefined,
+  //           endAddress: undefined,
+  //           createdAt: new Date().toISOString(),
+  //           updatedAt: new Date().toISOString(),
+  //         };
+
+  //         return trip;
+  //       }),
+  //       tap(trip => {
+  //         console.log('Recorrido guardado exitosamente:', trip.id);
+  //         console.log(`Distancia: ${data.distanceMiles.toFixed(2)} millas`);
+  //         console.log(`Duracion: ${Math.floor(data.durationSeconds / 60)} minutos`);
+
+  //         this.addTripToCache(trip);
+  //         this.refreshStatistics();
+  //       }),
+  //       catchError(error => {
+  //         console.error('Error enviando datos a la API:', error);
+  //         this.savePendingTrip(data);
+  //         throw error;
+  //       })
+  //     );
+  //   }
+
   /**
  * Finaliza un trip y envía todos los datos al backend.
  * Construye un payload que coincide con TripPayloadDto del backend.
  */
   finishTrip(data: FinishTripData): Observable<Trip> {
-
     const url = `${environment.apiUrl}${environment.endpoints.mileageLog}`;
 
     const decodedToken = this.customerTokenService.decodeToken();
 
     if (!decodedToken) {
-      throw new Error('No se pudo decodificar el token JWT');
+      return throwError(() => new Error('No se pudo decodificar el token JWT'));
     }
 
     const customerId = decodedToken.nameid;
     const companyId = decodedToken.companyId;
 
     if (!customerId || !companyId) {
-      throw new Error('CustomerId o CompanyId no encontrado en el token');
+      return throwError(() => new Error('CustomerId o CompanyId no encontrado en el token'));
     }
 
-    const routePoints: GeoPointDto[] = data.route.map(point => ({
-      latitude: point.latitude,
-      longitude: point.longitude,
-      accuracy: point.accuracy ?? 0,
-      timestamp: point.timestamp,
-    }));
+    const profileData = { customerId, companyId };
 
-    const payload: TripPayloadDto = {
-      tripId: data.tripId,
-      customerId,
-      companyId,
-      purpose: data.purpose,
-      isTracking: false,
-      isPaused: false,
-      routePoints,
-      currentPosition: routePoints.length > 0 ? {
-        latitude: data.endLocation.latitude,
-        longitude: data.endLocation.longitude,
-        accuracy: data.endLocation.accuracy ?? 0,
-        timestamp: data.endLocation.timestamp,
-      } : undefined,
-      startTime: data.route.length > 0 ? data.route[0].timestamp : Date.now(),
-      lastUpdate: Date.now(),
-      elapsedTime: data.durationSeconds * 1000,
-      currentDistance: data.distanceMiles,
-      currentSpeed: 0,
-    };
+    // ✅ Usar switchMap para encadenar los observables correctamente
+    return this.vehicleService.getProfileVehicle(profileData).pipe(
+      switchMap((response: any) => {
+        let vehicleId = '';
 
-    if (environment.debug.logApi) {
-      console.log('Payload a enviar:', JSON.stringify(payload, null, 2));
-    }
-
-    return this.http.post<ApiResponse<any>>(url, payload).pipe(
-      map(response => {
-        if (!response.success) {
-          throw new Error(response.message);
+        // Manejar la respuesta del backend (puede venir con wrapper)
+        if (response?.success && response?.data && response.data.id) {
+          vehicleId = response.data.id.toString();
+        } else if (response?.id) {
+          vehicleId = response.id.toString();
         }
 
-        const trip: Trip = {
-          id: data.tripId,
-          userId: customerId,
-          vehicleId: undefined,
-          startTime: new Date(data.route[0]?.timestamp || Date.now()).toISOString(),
-          endTime: new Date().toISOString(),
-          status: 'completed',
+        // Si no hay vehículo, retornar error Observable
+        if (!vehicleId) {
+          return throwError(() => new Error('No se encontró un vehículo para este usuario'));
+        }
+
+        // Construir routePoints
+        const routePoints: GeoPointDto[] = data.route.map(point => ({
+          latitude: point.latitude,
+          longitude: point.longitude,
+          accuracy: point.accuracy ?? 0,
+          timestamp: point.timestamp,
+        }));
+
+        // Construir payload completo
+        const payload: TripPayloadDto = {
+          tripId: data.tripId,
+          customerId,
+          companyId,
+          vehicleId,
           purpose: data.purpose,
-          notes: undefined,
-          startLocation: data.route[0],
-          endLocation: data.endLocation,
-          route: data.route,
-          distanceMiles: data.distanceMiles,
-          distanceKm: data.distanceKm,
-          durationSeconds: data.durationSeconds,
-          averageSpeedMph: data.averageSpeedMph,
-          maxSpeedMph: data.maxSpeedMph,
-          startAddress: undefined,
-          endAddress: undefined,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          isTracking: false,
+          isPaused: false,
+          routePoints,
+          currentPosition: routePoints.length > 0 ? {
+            latitude: data.endLocation.latitude,
+            longitude: data.endLocation.longitude,
+            accuracy: data.endLocation.accuracy ?? 0,
+            timestamp: data.endLocation.timestamp,
+          } : undefined,
+          startTime: data.route.length > 0 ? data.route[0].timestamp : Date.now(),
+          lastUpdate: Date.now(),
+          elapsedTime: data.durationSeconds * 1000,
+          currentDistance: data.distanceMiles,
+          currentSpeed: 0,
         };
 
-        return trip;
+        if (environment.debug.logApi) {
+          console.log('Payload a enviar:', JSON.stringify(payload, null, 2));
+        }
+
+        // Enviar al backend
+        return this.http.post<ApiResponse<any>>(url, payload).pipe(
+          map(response => {
+            if (!response.success) {
+              throw new Error(response.message);
+            }
+
+            // Construir Trip local
+            const trip: Trip = {
+              id: data.tripId,
+              userId: customerId,
+              vehicleId,
+              startTime: new Date(data.route[0]?.timestamp || Date.now()).toISOString(),
+              endTime: new Date().toISOString(),
+              status: 'completed',
+              purpose: data.purpose,
+              notes: undefined,
+              startLocation: data.route[0],
+              endLocation: data.endLocation,
+              route: data.route,
+              distanceMiles: data.distanceMiles,
+              distanceKm: data.distanceKm,
+              durationSeconds: data.durationSeconds,
+              averageSpeedMph: data.averageSpeedMph,
+              maxSpeedMph: data.maxSpeedMph,
+              startAddress: undefined,
+              endAddress: undefined,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+
+            return trip;
+          })
+        );
       }),
       tap(trip => {
         console.log('Recorrido guardado exitosamente:', trip.id);
@@ -266,7 +417,7 @@ export class TripService {
       catchError(error => {
         console.error('Error enviando datos a la API:', error);
         this.savePendingTrip(data);
-        throw error;
+        return throwError(() => error);
       })
     );
   }
@@ -343,21 +494,29 @@ export class TripService {
     );
   }
 
+  getMileSevenDays(payload: TripProfileData): Observable<DailyMileage[]> {
+    const url = environment.apiUrl + environment.endpoints.mileageSummary;
+
+    return this.http.post<ApiResponse<DailyMileage[]>>(url, payload).pipe(
+      map(response => response.data || [])
+    );
+  }
+
   /**
    * Obtiene millas diarias para el gráfico
    */
-  getDailyMileage(days: number = 30): Observable<DailyMileage[]> {
-    const url = `${environment.apiUrl}${environment.endpoints.mileageSummary}`;
-    const params = new HttpParams().set('days', days.toString());
+  // getDailyMileage(days: number = 30): Observable<DailyMileage[]> {
+  //   const url = `${environment.apiUrl}${environment.endpoints.mileageSummary}`;
+  //   const params = new HttpParams().set('days', days.toString());
 
-    return this.http.get<ApiResponse<DailyMileage[]>>(url, { params }).pipe(
-      map(response => response.success ? response.data : []),
-      catchError(error => {
-        console.error('❌ Error obteniendo millas diarias:', error);
-        return of(this.calculateDailyMileageFromCache(days));
-      })
-    );
-  }
+  //   return this.http.get<ApiResponse<DailyMileage[]>>(url, { params }).pipe(
+  //     map(response => response.success ? response.data : []),
+  //     catchError(error => {
+  //       console.error('❌ Error obteniendo millas diarias:', error);
+  //       return of(this.calculateDailyMileageFromCache(days));
+  //     })
+  //   );
+  // }
 
   /**
    * Refresca las estadísticas
@@ -524,28 +683,28 @@ export class TripService {
   /**
    * Calcula millas diarias desde cache
    */
-  private calculateDailyMileageFromCache(days: number): DailyMileage[] {
-    const trips = this.tripsCache.value;
-    const result: DailyMileage[] = [];
+  // private calculateDailyMileageFromCache(days: number): DailyMileage[] {
+  //   const trips = this.tripsCache.value;
+  //   const result: DailyMileage[] = [];
 
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+  //   for (let i = days - 1; i >= 0; i--) {
+  //     const date = new Date();
+  //     date.setDate(date.getDate() - i);
+  //     const dateStr = date.toISOString().split('T')[0];
 
-      const dayTrips = trips.filter(t =>
-        t.startTime.split('T')[0] === dateStr
-      );
+  //     const dayTrips = trips.filter(t =>
+  //       t.startTime.split('T')[0] === dateStr
+  //     );
 
-      result.push({
-        date: dateStr,
-        miles: dayTrips.reduce((sum, t) => sum + t.distanceMiles, 0),
-        trips: dayTrips.length
-      });
-    }
+  //     result.push({
+  //       date: dateStr,
+  //       miles: dayTrips.reduce((sum, t) => sum + t.distanceMiles, 0),
+  //       trips: dayTrips.length
+  //     });
+  //   }
 
-    return result;
-  }
+  //   return result;
+  // }
 
   // ===========================================
   // SINCRONIZACIÓN DE TRIPS PENDIENTES

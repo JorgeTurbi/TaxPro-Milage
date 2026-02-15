@@ -159,9 +159,14 @@ export interface UserStatistics {
 }
 
 export interface DailyMileage {
-  date: string;
+  day: string;
   miles: number;
-  trips: number;
+  tripsCount: number;
+}
+
+export interface TripProfileData{
+  companyId: string;
+  customerId: string;
 }
 
 export interface MonthlyMileage {
@@ -280,6 +285,7 @@ export interface TripPayloadDto {
   tripId: string;        // UUID único del trip
   customerId: string;    // nameid del JWT (identifica al customer)
   companyId: string;     // companyId del JWT (identifica la company)
+  vehicleId: string;
   purpose: string;       // Propósito del viaje (business, medical, charity, moving, personal)
   isTracking: boolean;
   isPaused: boolean;

@@ -66,25 +66,25 @@ export class GpsTrackingService {
 
   // ID del watcher de posición
   private watchId: string | null = null;
-  
+
   // Suscripción al timer
   private timerSubscription: Subscription | null = null;
-  
+
   // Subject para detener el tracking
   private stopTracking$ = new Subject<void>();
-  
+
   // Timestamp de la última posición con movimiento
   private lastMovementTime: number = 0;
-  
+
   // Tiempo que lleva detenido
   private stoppedSince: number = 0;
-  
+
   // Flag para indicar si está temporalmente detenido
   private isTemporarilyStopped: boolean = false;
-  
+
   // Timeout para auto-stop
   private autoStopTimeout: ReturnType<typeof setTimeout> | null = null;
-  
+
   // Watcher para detección de conducción
   private drivingDetectionWatchId: string | null = null;
   private drivingStartTime: number = 0;
@@ -105,6 +105,8 @@ export class GpsTrackingService {
   // Sync periódico con el API
   private apiSyncSubscription: Subscription | null = null;
   private readonly API_SYNC_INTERVAL_MS = 30000; // Sync cada 30 segundos
+
+  savedTrip = {} as Trip;
 
   constructor() {
     this.restoreTrackingState();
@@ -130,9 +132,9 @@ export class GpsTrackingService {
    */
   async setAutoStopMinutes(minutes: number): Promise<void> {
     this.autoStopMinutes = minutes;
-    await Preferences.set({ 
-      key: 'autoStopMinutes', 
-      value: minutes.toString() 
+    await Preferences.set({
+      key: 'autoStopMinutes',
+      value: minutes.toString()
     });
   }
 
@@ -406,7 +408,17 @@ export class GpsTrackingService {
         maxSpeedMph: this.calculateMaxSpeed(currentState.routePoints)
       };
 
-      const savedTrip = await this.tripService.finishTrip(tripData).toPromise();
+      this.tripService.finishTrip(tripData).subscribe({
+        next: (trip) => {
+          if (!trip) {
+            return this.savedTrip;
+          }
+          return this.savedTrip = trip;
+        },
+        error: (err) => {
+          console.error('Error guardando viaje:', err);
+        }
+      });
 
       this.resetTrackingState();
       await this.clearSavedTrackingState();
@@ -418,7 +430,7 @@ export class GpsTrackingService {
       // Solo log al finalizar con resumen
       console.log(`✅ Tracking finalizado: ${tripData.distanceMiles.toFixed(2)} mi, ${currentState.routePoints.length} puntos`);
 
-      return savedTrip || null;
+      return this.savedTrip || null;
 
     } catch (error) {
       console.error('❌ Error finalizando tracking:', error);
@@ -630,7 +642,7 @@ export class GpsTrackingService {
     this.clearAutoStopTimeout();
 
     const timeoutMs = this.autoStopMinutes * 60 * 1000;
-    
+
     console.log(`⏰ Auto-stop programado en ${this.autoStopMinutes} minutos`);
 
     this.autoStopTimeout = setTimeout(() => {
@@ -650,7 +662,7 @@ export class GpsTrackingService {
 
   private async handleAutoStop(): Promise<void> {
     const currentState = this.trackingStateSubject.value;
-    
+
     if (!currentState.isTracking) {
       return;
     }
@@ -673,7 +685,7 @@ export class GpsTrackingService {
       takeUntil(this.stopTracking$)
     ).subscribe(() => {
       const currentState = this.trackingStateSubject.value;
-      
+
       if (currentState.isTracking && !currentState.isPaused) {
         this.trackingStateSubject.next({
           ...currentState,
@@ -734,18 +746,18 @@ export class GpsTrackingService {
 
   calculateDistance(point1: GpsPoint, point2: GpsPoint): number {
     const R = 3959;
-    
+
     const dLat = this.toRad(point2.latitude - point1.latitude);
     const dLon = this.toRad(point2.longitude - point1.longitude);
-    
-    const a = 
+
+    const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(this.toRad(point1.latitude)) * 
+      Math.cos(this.toRad(point1.latitude)) *
       Math.cos(this.toRad(point2.latitude)) *
       Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    
+
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    
+
     return R * c;
   }
 
@@ -764,7 +776,7 @@ export class GpsTrackingService {
 
   private calculateMaxSpeed(points: GpsPoint[]): number {
     let maxSpeed = 0;
-    
+
     for (const point of points) {
       if (point.speed) {
         const speedMph = point.speed * 2.237;
@@ -773,7 +785,7 @@ export class GpsTrackingService {
         }
       }
     }
-    
+
     return maxSpeed;
   }
 
@@ -800,12 +812,12 @@ export class GpsTrackingService {
   async checkAndRequestPermissions(): Promise<boolean> {
     try {
       let permissions = await Geolocation.checkPermissions();
-      
+
       console.log('📍 Estado de permisos:', permissions.location);
 
       if (permissions.location !== 'granted') {
         permissions = await Geolocation.requestPermissions();
-        
+
         if (permissions.location !== 'granted') {
           throw new Error('Permisos de ubicación denegados');
         }
@@ -826,7 +838,7 @@ export class GpsTrackingService {
 
   private async saveTrackingState(): Promise<void> {
     const state = this.trackingStateSubject.value;
-    
+
     await Preferences.set({
       key: environment.storage.tempTrackingKey,
       value: JSON.stringify(state)
@@ -841,15 +853,15 @@ export class GpsTrackingService {
 
       if (value) {
         const savedState: TrackingState = JSON.parse(value);
-        
+
         if (savedState.isTracking) {
           console.log('🔄 Restaurando tracking en progreso...');
-          
+
           if (savedState.startTime) {
             const elapsedSinceLastUpdate = Math.floor((Date.now() - (savedState.lastUpdate || savedState.startTime)) / 1000);
             savedState.elapsedTime += elapsedSinceLastUpdate;
           }
-          
+
           savedState.isPaused = true;
           this.trackingStateSubject.next(savedState);
         }

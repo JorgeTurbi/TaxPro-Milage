@@ -49,9 +49,11 @@ import { Subscription } from 'rxjs';
 import { CustomerAuthService } from '../../services/customer-auth.service';
 import { TripService } from '../../services/trip.service';
 import { GpsTrackingService } from '../../services/gps-tracking.service';
-import { User, UserStatistics, Trip, DailyMileage } from '../../models/interfaces';
+import { User, UserStatistics, Trip, DailyMileage, TripProfileData } from '../../models/interfaces';
 import { ICustomerProfile } from '../../models/customer-login.interface';
 import { environment } from '../../../environments/environment';
+import { CustomerTokenService } from '../../services/customer-token.service';
+import { TrackingApiService } from '../../services/tracking-api.service';
 
 // Registrar componentes de Chart.js
 Chart.register(...registerables);
@@ -81,10 +83,12 @@ Chart.register(...registerables);
   templateUrl: './dashboard.page.html',
   styleUrl: './dashboard.page.scss'
 })
-export class DashboardPage implements OnInit, OnDestroy, AfterViewInit {
+export class DashboardPage implements OnInit, OnDestroy {
   @ViewChild('chartCanvas') chartCanvas!: ElementRef<HTMLCanvasElement>;
 
   private authService = inject(CustomerAuthService);
+  private customerTokenService: CustomerTokenService = inject(CustomerTokenService);
+  private vehicleService: TrackingApiService = inject(TrackingApiService);
   private tripService = inject(TripService);
   private trackingService = inject(GpsTrackingService);
   private router = inject(Router);
@@ -157,12 +161,12 @@ export class DashboardPage implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  ngAfterViewInit(): void {
-    // Esperar un momento para que el canvas esté listo
-    setTimeout(() => {
-      this.createChart();
-    }, 500);
-  }
+  // ngAfterViewInit(): void {
+  //   // Esperar un momento para que el canvas esté listo
+  //   setTimeout(() => {
+  //     this.createChart();
+  //   }, 500);
+  // }
 
   ngOnDestroy(): void {
     this.subscriptions.forEach(sub => sub.unsubscribe());
@@ -198,6 +202,42 @@ export class DashboardPage implements OnInit, OnDestroy, AfterViewInit {
     this.isLoading = true;
 
     try {
+      const decodedToken = this.customerTokenService.decodeToken();
+
+      if (!decodedToken) {
+        throw new Error('No se pudo decodificar el token JWT');
+      }
+
+      const customerId = decodedToken.nameid;
+      const companyId = decodedToken.companyId;
+
+      if (!customerId || !companyId) {
+        throw new Error('CustomerId o CompanyId no encontrado en el token');
+      }
+
+      const data = { customerId, companyId };
+
+      this.vehicleService.getProfileVehicle(data).subscribe({
+        next: (vehicle) => {
+          if (vehicle && vehicle.id) {
+
+
+          }
+          const tripProfileData: TripProfileData = {
+            customerId: data.customerId,
+            companyId: data.companyId
+          };
+
+          this.getStaticSevenDaysMileage(tripProfileData);
+
+          console.log('Cargando estadísticas de millas para los últimos 7 días con:', tripProfileData);
+          console.log('Vehículo perfil cargado:', vehicle);
+        },
+        error: (error) => {
+          console.error('Error cargando vehículo perfil:', error);
+        }
+      });
+
       // Cargar estadísticas
       await this.tripService.getStatistics().toPromise();
 
@@ -205,29 +245,25 @@ export class DashboardPage implements OnInit, OnDestroy, AfterViewInit {
       this.recentTrips = this.tripService.getRecentTrips();
 
       // DEMO DATA: Mock para visualizar el widget estilo Uber si no hay datos
-      if (this.recentTrips.length === 0) {
-        this.recentTrips = [{
-          id: 'demo-1',
-          userId: 'user-1',
-          startTime: new Date().toISOString(),
-          endTime: new Date(new Date().getTime() + 25 * 60000).toISOString(), // +25 mins
-          status: 'completed',
-          purpose: 'business',
-          distanceMiles: 8.5,
-          distanceKm: 13.6,
-          durationSeconds: 1500, // 25 min
-          startLocation: { latitude: 0, longitude: 0, timestamp: Date.now() },
-          startAddress: '123 Market St, San Francisco',
-          endAddress: '456 Tech Park, Palo Alto',
-          route: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }];
-      }
-
-      // Cargar millas diarias
-      const dailyData = await this.tripService.getDailyMileage(7).toPromise();
-      this.dailyMileage = dailyData || [];
+      // if (this.recentTrips.length === 0) {
+      //   this.recentTrips = [{
+      //     id: 'demo-1',
+      //     userId: 'user-1',
+      //     startTime: new Date().toISOString(),
+      //     endTime: new Date(new Date().getTime() + 25 * 60000).toISOString(), // +25 mins
+      //     status: 'completed',
+      //     purpose: 'business',
+      //     distanceMiles: 8.5,
+      //     distanceKm: 13.6,
+      //     durationSeconds: 1500, // 25 min
+      //     startLocation: { latitude: 0, longitude: 0, timestamp: Date.now() },
+      //     startAddress: '123 Market St, San Francisco',
+      //     endAddress: '456 Tech Park, Palo Alto',
+      //     route: [],
+      //     createdAt: new Date().toISOString(),
+      //     updatedAt: new Date().toISOString()
+      //   }];
+      // }
 
       // Actualizar gráfico si existe
       if (this.chart) {
@@ -239,6 +275,20 @@ export class DashboardPage implements OnInit, OnDestroy, AfterViewInit {
     } finally {
       this.isLoading = false;
     }
+  }
+
+  getStaticSevenDaysMileage(tripProfileData: TripProfileData) {
+    this.tripService.getMileSevenDays(tripProfileData).subscribe({
+      next: (dailyData: DailyMileage[]) => {
+        this.dailyMileage = dailyData;
+        console.log('Datos de millas diarias para los últimos 7 días:', this.dailyMileage);
+        this.updateChart();
+      },
+      error: (error) => {
+        console.error('Error cargando estadísticas:', error);
+      }
+    });
+
   }
 
   async handleRefresh(event: any): Promise<void> {
@@ -255,7 +305,7 @@ export class DashboardPage implements OnInit, OnDestroy, AfterViewInit {
     const ctx = this.chartCanvas.nativeElement.getContext('2d');
     if (!ctx) return;
 
-    const labels = this.dailyMileage.map(d => this.formatDayLabel(d.date));
+    const labels = this.dailyMileage.map(d => this.formatDayLabel(d.day));
     const data = this.dailyMileage.map(d => d.miles);
 
     this.chart = new Chart(ctx, {
@@ -330,7 +380,7 @@ export class DashboardPage implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
-    const labels = this.dailyMileage.map(d => this.formatDayLabel(d.date));
+    const labels = this.dailyMileage.map(d => this.formatDayLabel(d.day));
     const data = this.dailyMileage.map(d => d.miles);
 
     this.chart.data.labels = labels;
@@ -363,9 +413,17 @@ export class DashboardPage implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
+  // formatDayLabel(dateStr: string): string {
+  //   const date = new Date(dateStr);
+  //   return date.toLocaleDateString('es-ES', { weekday: 'short' });
+  // }
+
   formatDayLabel(dateStr: string): string {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('es-ES', { weekday: 'short' });
+    // Parse date manually to avoid UTC conversion
+    const [year, month, day] = dateStr.split('-').map(Number);
+    // Create Date in local timezone (month is 0-indexed)
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-US', { weekday: 'short' });
   }
 
   formatDuration(seconds: number): string {
