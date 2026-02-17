@@ -112,7 +112,7 @@ export class DashboardPage implements OnInit, OnDestroy {
 
   private subscriptions: Subscription[] = [];
   private chart: Chart | null = null;
-
+  monthlyDeduction: number = 0;
   user: ICustomerProfile | null = null;
   statistics: UserStatistics | null = null;
   recentTrips: Trip[] = [];
@@ -445,8 +445,14 @@ export class DashboardPage implements OnInit, OnDestroy {
     return 'Buenas noches';
   }
 
+  async ionViewWillEnter() {
+    this.monthlyDeduction = await this.getMonthlyDeduction();
+  }
+
   async getMonthlyDeduction(): Promise<number> {
-    const miles = this.statistics?.milesThisMonth || 0;
+    const valor = await this.tripService.getStatisticsFromCache();
+    console.log('Valor de estadísticas desde cache:==============>', valor);
+    const miles = valor.milesThisMonth || 0;
     const { value } = await Preferences.get({ key: 'irsConfiguration' });
 
     const irsConfiguration: IIRSConfiguration = value
@@ -455,6 +461,7 @@ export class DashboardPage implements OnInit, OnDestroy {
     if (!irsConfiguration) {
       return 0;
     }
+    console.log('==========>', miles * Number(irsConfiguration.mileageRate));
     return miles * Number(irsConfiguration.mileageRate);
   }
 

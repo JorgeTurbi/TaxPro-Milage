@@ -36,7 +36,7 @@ import { CustomerTokenService } from './customer-token.service';
 import { TrackingApiService } from './tracking-api.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class TripService {
   private http = inject(HttpClient);
@@ -93,20 +93,20 @@ export class TripService {
       page: filters?.page || 1,
       limit: filters?.limit || 20,
       sortBy: filters?.sortBy || 'date',
-      sortOrder: filters?.sortOrder || 'desc'
+      sortOrder: filters?.sortOrder || 'desc',
     };
 
     const url = environment.apiUrl + environment.endpoints.trips;
 
     return this.http.post<PaginatedResponse<Trip>>(url, payload).pipe(
-      tap(response => {
+      tap((response) => {
         if (response.success) {
           this.tripsCache.next(response.data);
           this.saveTripsToCache(response.data);
         }
       }),
-      map(response => response.data),
-      catchError(error => {
+      map((response) => response.data),
+      catchError((error) => {
         console.error('❌ Error obteniendo trips:', error);
         return of(this.tripsCache.value);
       }),
@@ -119,7 +119,7 @@ export class TripService {
    */
   getTripById(id: string): Observable<Trip | null> {
     // Primero buscar en cache
-    const cachedTrip = this.tripsCache.value.find(t => t.id === id);
+    const cachedTrip = this.tripsCache.value.find((t) => t.id === id);
 
     const decodedToken = this.customerTokenService.decodeToken();
 
@@ -133,14 +133,14 @@ export class TripService {
     const payload = {
       tripId: id,
       customerId,
-      companyId
+      companyId,
     };
 
     const url = environment.apiUrl + environment.endpoints.tripById;
 
     return this.http.post<ApiResponse<Trip>>(url, payload).pipe(
-      map(response => response.success ? response.data : null),
-      catchError(error => {
+      map((response) => (response.success ? response.data : null)),
+      catchError((error) => {
         console.error('❌ Error obteniendo trip:', error);
         return of(cachedTrip || null);
       })
@@ -160,8 +160,8 @@ export class TripService {
     const url = `${environment.apiUrl}${environment.endpoints.tripsByDateRange}`;
 
     return this.http.get<ApiResponse<Trip[]>>(url, { params }).pipe(
-      map(response => response.success ? response.data : []),
-      catchError(error => {
+      map((response) => (response.success ? response.data : [])),
+      catchError((error) => {
         console.error('❌ Error obteniendo trips por fecha:', error);
         // Filtrar desde cache
         return of(this.filterTripsFromCache(startDate, endDate));
@@ -181,20 +181,20 @@ export class TripService {
       purpose: data.purpose || 'business',
       notes: data.notes || '',
       startTime: new Date().toISOString(),
-      status: 'in_progress'
+      status: 'in_progress',
     };
 
     return this.http.post<ApiResponse<Trip>>(url, tripData).pipe(
-      map(response => {
+      map((response) => {
         if (!response.success) {
           throw new Error(response.message);
         }
         return response.data;
       }),
-      tap(trip => {
+      tap((trip) => {
         console.log('✅ Trip creado:', trip.id);
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('❌ Error creando trip:', error);
         throw error;
       })
@@ -323,9 +323,9 @@ export class TripService {
   //   }
 
   /**
- * Finaliza un trip y envía todos los datos al backend.
- * Construye un payload que coincide con TripPayloadDto del backend.
- */
+   * Finaliza un trip y envía todos los datos al backend.
+   * Construye un payload que coincide con TripPayloadDto del backend.
+   */
   finishTrip(data: FinishTripData): Observable<Trip> {
     const url = `${environment.apiUrl}${environment.endpoints.mileageLog}`;
 
@@ -339,7 +339,9 @@ export class TripService {
     const companyId = decodedToken.companyId;
 
     if (!customerId || !companyId) {
-      return throwError(() => new Error('CustomerId o CompanyId no encontrado en el token'));
+      return throwError(
+        () => new Error('CustomerId o CompanyId no encontrado en el token')
+      );
     }
 
     const profileData = { customerId, companyId };
@@ -358,11 +360,13 @@ export class TripService {
 
         // Si no hay vehículo, retornar error Observable
         if (!vehicleId) {
-          return throwError(() => new Error('No se encontró un vehículo para este usuario'));
+          return throwError(
+            () => new Error('No se encontró un vehículo para este usuario')
+          );
         }
 
         // Construir routePoints
-        const routePoints: GeoPointDto[] = data.route.map(point => ({
+        const routePoints: GeoPointDto[] = data.route.map((point) => ({
           latitude: point.latitude,
           longitude: point.longitude,
           accuracy: point.accuracy ?? 0,
@@ -379,13 +383,17 @@ export class TripService {
           isTracking: false,
           isPaused: false,
           routePoints,
-          currentPosition: routePoints.length > 0 ? {
-            latitude: data.endLocation.latitude,
-            longitude: data.endLocation.longitude,
-            accuracy: data.endLocation.accuracy ?? 0,
-            timestamp: data.endLocation.timestamp,
-          } : undefined,
-          startTime: data.route.length > 0 ? data.route[0].timestamp : Date.now(),
+          currentPosition:
+            routePoints.length > 0
+              ? {
+                  latitude: data.endLocation.latitude,
+                  longitude: data.endLocation.longitude,
+                  accuracy: data.endLocation.accuracy ?? 0,
+                  timestamp: data.endLocation.timestamp,
+                }
+              : undefined,
+          startTime:
+            data.route.length > 0 ? data.route[0].timestamp : Date.now(),
           lastUpdate: Date.now(),
           elapsedTime: data.durationSeconds * 1000,
           currentDistance: data.distanceMiles,
@@ -398,7 +406,7 @@ export class TripService {
 
         // Enviar al backend
         return this.http.post<ApiResponse<any>>(url, payload).pipe(
-          map(response => {
+          map((response) => {
             if (!response.success) {
               throw new Error(response.message);
             }
@@ -409,7 +417,9 @@ export class TripService {
               customerid: customerId,
               companyid: companyId,
               vehicleId,
-              startTime: new Date(data.route[0]?.timestamp || Date.now()).toISOString(),
+              startTime: new Date(
+                data.route[0]?.timestamp || Date.now()
+              ).toISOString(),
               endTime: new Date().toISOString(),
               status: 'Completed',
               purpose: data.purpose,
@@ -432,15 +442,17 @@ export class TripService {
           })
         );
       }),
-      tap(trip => {
+      tap((trip) => {
         console.log('Recorrido guardado exitosamente:', trip.id);
         console.log(`Distancia: ${data.distanceMiles.toFixed(2)} millas`);
-        console.log(`Duracion: ${Math.floor(data.durationSeconds / 60)} minutos`);
+        console.log(
+          `Duracion: ${Math.floor(data.durationSeconds / 60)} minutos`
+        );
 
         this.addTripToCache(trip);
         this.refreshStatistics();
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('Error enviando datos a la API:', error);
         this.savePendingTrip(data);
         return throwError(() => error);
@@ -452,19 +464,22 @@ export class TripService {
    * Actualiza un trip existente
    */
   updateTrip(id: string, updates: Partial<Trip>): Observable<Trip> {
-    const url = `${environment.apiUrl}${environment.endpoints.tripById.replace(':id', id)}`;
+    const url = `${environment.apiUrl}${environment.endpoints.tripById.replace(
+      ':id',
+      id
+    )}`;
 
     return this.http.put<ApiResponse<Trip>>(url, updates).pipe(
-      map(response => {
+      map((response) => {
         if (!response.success) {
           throw new Error(response.message);
         }
         return response.data;
       }),
-      tap(trip => {
+      tap((trip) => {
         this.updateTripInCache(trip);
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('❌ Error actualizando trip:', error);
         throw error;
       })
@@ -475,16 +490,19 @@ export class TripService {
    * Elimina un trip
    */
   deleteTrip(id: string): Observable<boolean> {
-    const url = `${environment.apiUrl}${environment.endpoints.tripById.replace(':id', id)}`;
+    const url = `${environment.apiUrl}${environment.endpoints.tripById.replace(
+      ':id',
+      id
+    )}`;
 
     return this.http.delete<ApiResponse<void>>(url).pipe(
-      map(response => response.success),
-      tap(success => {
+      map((response) => response.success),
+      tap((success) => {
         if (success) {
           this.removeTripFromCache(id);
         }
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('❌ Error eliminando trip:', error);
         return of(false);
       })
@@ -517,7 +535,9 @@ export class TripService {
     const companyId = decodedToken.companyId;
 
     if (!customerId || !companyId) {
-      return throwError(() => new Error('CustomerId o CompanyId no encontrado en el token'));
+      return throwError(
+        () => new Error('CustomerId o CompanyId no encontrado en el token')
+      );
     }
 
     const payload: TripProfileData = {
@@ -526,17 +546,18 @@ export class TripService {
     };
 
     return this.http.post<ApiResponse<UserStatistics>>(url, payload).pipe(
-      map(response => {
+      map((response) => {
         if (!response.success) {
           throw new Error(response.message);
         }
+        this.statistics$;
         return response.data!;
       }),
-      tap(stats => {
+      tap((stats) => {
         this.statisticsSubject.next(stats);
         this.saveStatisticsToCache(stats);
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('❌ Error obteniendo estadísticas:', error);
         // Retornar estadísticas del cache o calculadas localmente
         return from(this.getStatisticsFromCache());
@@ -547,9 +568,9 @@ export class TripService {
   getMileSevenDays(payload: TripProfileData): Observable<DailyMileage[]> {
     const url = environment.apiUrl + environment.endpoints.mileageSummary;
 
-    return this.http.post<ApiResponse<DailyMileage[]>>(url, payload).pipe(
-      map(response => response.data || [])
-    );
+    return this.http
+      .post<ApiResponse<DailyMileage[]>>(url, payload)
+      .pipe(map((response) => response.data || []));
   }
 
   /**
@@ -601,7 +622,7 @@ export class TripService {
     try {
       await Preferences.set({
         key: 'trips_cache',
-        value: JSON.stringify(trips)
+        value: JSON.stringify(trips),
       });
     } catch (error) {
       console.error('❌ Error guardando cache de trips:', error);
@@ -623,7 +644,7 @@ export class TripService {
    */
   private updateTripInCache(trip: Trip): void {
     const currentTrips = this.tripsCache.value;
-    const index = currentTrips.findIndex(t => t.id === trip.id);
+    const index = currentTrips.findIndex((t) => t.id === trip.id);
 
     if (index !== -1) {
       currentTrips[index] = trip;
@@ -637,7 +658,7 @@ export class TripService {
    */
   private removeTripFromCache(id: string): void {
     const currentTrips = this.tripsCache.value;
-    const filteredTrips = currentTrips.filter(t => t.id !== id);
+    const filteredTrips = currentTrips.filter((t) => t.id !== id);
     this.tripsCache.next(filteredTrips);
     this.saveTripsToCache(filteredTrips);
   }
@@ -649,7 +670,7 @@ export class TripService {
     const start = new Date(startDate).getTime();
     const end = new Date(endDate).getTime();
 
-    return this.tripsCache.value.filter(trip => {
+    return this.tripsCache.value.filter((trip) => {
       const tripDate = new Date(trip.startTime).getTime();
       return tripDate >= start && tripDate <= end;
     });
@@ -662,7 +683,7 @@ export class TripService {
     try {
       await Preferences.set({
         key: 'statistics_cache',
-        value: JSON.stringify(stats)
+        value: JSON.stringify(stats),
       });
     } catch (error) {
       console.error('❌ Error guardando estadísticas:', error);
@@ -672,7 +693,7 @@ export class TripService {
   /**
    * Obtiene estadísticas del cache o calcula desde trips
    */
-  private async getStatisticsFromCache(): Promise<UserStatistics> {
+  async getStatisticsFromCache(): Promise<UserStatistics> {
     try {
       const { value } = await Preferences.get({ key: 'statistics_cache' });
       if (value) {
@@ -699,15 +720,25 @@ export class TripService {
     const totalMiles = trips.reduce((sum, t) => sum + t.distanceMiles, 0);
     const totalDuration = trips.reduce((sum, t) => sum + t.durationSeconds, 0);
 
-    const tripsThisWeek = trips.filter(t => new Date(t.startTime) >= weekAgo);
-    const tripsThisMonth = trips.filter(t => new Date(t.startTime) >= monthAgo);
-    const tripsThisYear = trips.filter(t => new Date(t.startTime) >= yearAgo);
+    const tripsThisWeek = trips.filter((t) => new Date(t.startTime) >= weekAgo);
+    const tripsThisMonth = trips.filter(
+      (t) => new Date(t.startTime) >= monthAgo
+    );
+    const tripsThisYear = trips.filter((t) => new Date(t.startTime) >= yearAgo);
 
     const milesByPurpose = {
-      business: trips.filter(t => t.purpose === 'business').reduce((sum, t) => sum + t.distanceMiles, 0),
-      medical: trips.filter(t => t.purpose === 'medical').reduce((sum, t) => sum + t.distanceMiles, 0),
-      moving: trips.filter(t => t.purpose === 'moving').reduce((sum, t) => sum + t.distanceMiles, 0),
-      personal: trips.filter(t => t.purpose === 'personal').reduce((sum, t) => sum + t.distanceMiles, 0),
+      business: trips
+        .filter((t) => t.purpose === 'business')
+        .reduce((sum, t) => sum + t.distanceMiles, 0),
+      medical: trips
+        .filter((t) => t.purpose === 'medical')
+        .reduce((sum, t) => sum + t.distanceMiles, 0),
+      moving: trips
+        .filter((t) => t.purpose === 'moving')
+        .reduce((sum, t) => sum + t.distanceMiles, 0),
+      personal: trips
+        .filter((t) => t.purpose === 'personal')
+        .reduce((sum, t) => sum + t.distanceMiles, 0),
     };
 
     return {
@@ -719,13 +750,16 @@ export class TripService {
       tripsThisWeek: tripsThisWeek.length,
       milesThisWeek: tripsThisWeek.reduce((sum, t) => sum + t.distanceMiles, 0),
       tripsThisMonth: tripsThisMonth.length,
-      milesThisMonth: tripsThisMonth.reduce((sum, t) => sum + t.distanceMiles, 0),
+      milesThisMonth: tripsThisMonth.reduce(
+        (sum, t) => sum + t.distanceMiles,
+        0
+      ),
       tripsThisYear: tripsThisYear.length,
       milesThisYear: tripsThisYear.reduce((sum, t) => sum + t.distanceMiles, 0),
       averageTripMiles: trips.length > 0 ? totalMiles / trips.length : 0,
       averageTripDuration: trips.length > 0 ? totalDuration / trips.length : 0,
       averageTripsPerWeek: trips.length > 0 ? trips.length / 52 : 0,
-      milesByPurpose
+      milesByPurpose,
     };
   }
 
@@ -769,12 +803,12 @@ export class TripService {
 
       pendingTrips.push({
         ...data,
-        savedAt: new Date().toISOString()
+        savedAt: new Date().toISOString(),
       });
 
       await Preferences.set({
         key: 'pending_trips',
-        value: JSON.stringify(pendingTrips)
+        value: JSON.stringify(pendingTrips),
       });
 
       console.log('💾 Trip guardado para sincronización posterior');
@@ -796,7 +830,9 @@ export class TripService {
 
       if (pendingTrips.length === 0) return;
 
-      console.log(`🔄 Sincronizando ${pendingTrips.length} trips pendientes...`);
+      console.log(
+        `🔄 Sincronizando ${pendingTrips.length} trips pendientes...`
+      );
 
       const successfullySync: number[] = [];
 
@@ -810,17 +846,16 @@ export class TripService {
       }
 
       // Eliminar los sincronizados exitosamente
-      const remainingTrips = pendingTrips.filter((_: any, index: number) =>
-        !successfullySync.includes(index)
+      const remainingTrips = pendingTrips.filter(
+        (_: any, index: number) => !successfullySync.includes(index)
       );
 
       await Preferences.set({
         key: 'pending_trips',
-        value: JSON.stringify(remainingTrips)
+        value: JSON.stringify(remainingTrips),
       });
 
       console.log(`✅ ${successfullySync.length} trips sincronizados`);
-
     } catch (error) {
       console.error('❌ Error sincronizando trips pendientes:', error);
     }
@@ -845,8 +880,8 @@ export class TripService {
   }
 
   /**
- * Limpia todo el cache de trips (llamado en logout)
- */
+   * Limpia todo el cache de trips (llamado en logout)
+   */
   clearCache(): void {
     this.tripsCache.next([]);
     this.statisticsSubject.next(null);
