@@ -757,7 +757,7 @@ ion-chip {
 /* ============================================================
    DARK MODE
    ============================================================ */
-body.dark {
+:host-context(body.dark) {
 
   /* Dashboard Content Background */
   ion-content {
@@ -1010,8 +1010,8 @@ body.dark {
 
   /* Trip Item (list) */
   .trip-item {
-    --background: #1e1e1e;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --background: transparent;
+    box-shadow: none;
   }
 
   .trip-distance {
@@ -1112,5 +1112,4 @@ body.dark {
   }
 
   .timeline-line { background: #4a5568; }
-}
 }

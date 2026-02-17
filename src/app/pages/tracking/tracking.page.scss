@@ -383,7 +383,7 @@
 /* ============================================================
    DARK MODE
    ============================================================ */
-body.dark {
+:host-context(body.dark) {
 
     /* Tracking Content Background */
     .tracking-content {

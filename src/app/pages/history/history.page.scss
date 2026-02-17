@@ -324,7 +324,7 @@ ion-segment-button {
 /* ============================================================
    DARK MODE
    ============================================================ */
-body.dark {
+:host-context(body.dark) {
 
     /* History Content Background */
     ion-content {

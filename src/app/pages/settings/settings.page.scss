@@ -104,7 +104,7 @@
 // ===========================================
 // DARK MODE
 // ===========================================
-body.dark {
+:host-context(body.dark) {
     .settings-content {
         --background: #121212;
     }

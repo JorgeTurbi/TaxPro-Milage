@@ -274,7 +274,7 @@ ion-button[fill="clear"] {
 /* ==============================================
    DARK MODE
    ============================================== */
-body.dark {
+:host-context(body.dark) {
 
     /* Profile Content Background */
     ion-content {

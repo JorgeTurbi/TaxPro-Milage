@@ -269,7 +269,7 @@ ion-card-title ion-icon {
 /* ============================================================
    DARK MODE
    ============================================================ */
-body.dark {
+:host-context(body.dark) {
 
     /* Error Container */
     .error-container {

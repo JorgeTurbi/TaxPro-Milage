@@ -240,7 +240,7 @@ ion-tab-button[tab="tracking"].tab-selected i {
 /* ============================================================
    DARK MODE
    ============================================================ */
-body.dark {
+:host-context(body.dark) {
     /* Glassmorphic background - dark version */
     ion-tab-bar::before {
         background: rgba(30, 30, 30, 0.95); /* Dark background with high opacity */
