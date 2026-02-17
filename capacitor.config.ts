@@ -63,7 +63,7 @@ const config: CapacitorConfig = {
   // Configuración específica para iOS
   ios: {
     // Esquema de la app
-    scheme: 'TaxProMileage',
+    scheme: 'App',
     // Permite scroll
     scrollEnabled: true
   }
