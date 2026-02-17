@@ -8,7 +8,15 @@
  * - Accesos rápidos
  */
 
-import { Component, OnInit, OnDestroy, inject, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  inject,
+  ViewChild,
+  ElementRef,
+  AfterViewInit,
+} from '@angular/core';
 import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import {
@@ -28,7 +36,7 @@ import {
   IonIcon,
   IonButton,
   IonSkeletonText,
-  IonChip
+  IonChip,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -41,15 +49,22 @@ import {
   calendarOutline,
   speedometerOutline,
   searchOutline,
-  notificationsOutline
+  notificationsOutline,
 } from 'ionicons/icons';
 import { Chart, registerables } from 'chart.js';
-import { Subscription } from 'rxjs';
+import { Subscription, Observable } from 'rxjs';
 
 import { CustomerAuthService } from '../../services/customer-auth.service';
 import { TripService } from '../../services/trip.service';
 import { GpsTrackingService } from '../../services/gps-tracking.service';
-import { User, UserStatistics, Trip, DailyMileage, TripProfileData, IIRSConfiguration } from '../../models/interfaces';
+import {
+  User,
+  UserStatistics,
+  Trip,
+  DailyMileage,
+  TripProfileData,
+  IIRSConfiguration,
+} from '../../models/interfaces';
 import { ICustomerProfile } from '../../models/customer-login.interface';
 import { environment } from '../../../environments/environment';
 import { CustomerTokenService } from '../../services/customer-token.service';
@@ -79,16 +94,17 @@ Chart.register(...registerables);
     IonIcon,
     IonButton,
     IonSkeletonText,
-    IonChip
+    IonChip,
   ],
   templateUrl: './dashboard.page.html',
-  styleUrl: './dashboard.page.scss'
+  styleUrl: './dashboard.page.scss',
 })
 export class DashboardPage implements OnInit, OnDestroy {
   @ViewChild('chartCanvas') chartCanvas!: ElementRef<HTMLCanvasElement>;
 
   private authService = inject(CustomerAuthService);
-  private customerTokenService: CustomerTokenService = inject(CustomerTokenService);
+  private customerTokenService: CustomerTokenService =
+    inject(CustomerTokenService);
   private vehicleService: TrackingApiService = inject(TrackingApiService);
   private tripService = inject(TripService);
   private trackingService = inject(GpsTrackingService);
@@ -116,12 +132,16 @@ export class DashboardPage implements OnInit, OnDestroy {
     distanceMiles: 8.52,
     distanceKm: 13.71,
     durationSeconds: 1543,
-    startLocation: { latitude: 37.7749, longitude: -122.4194, timestamp: Date.now() },
+    startLocation: {
+      latitude: 37.7749,
+      longitude: -122.4194,
+      timestamp: Date.now(),
+    },
     startAddress: '123 Market St, San Francisco, CA',
     endAddress: '456 Tech Park Blvd, Palo Alto, CA',
     route: [],
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
 
   constructor() {
@@ -135,13 +155,11 @@ export class DashboardPage implements OnInit, OnDestroy {
       calendarOutline,
       speedometerOutline,
       searchOutline,
-      notificationsOutline
+      notificationsOutline,
     });
   }
 
-
   ngOnInit(): void {
-
     const decodedToken = this.customerTokenService.decodeToken();
 
     if (!decodedToken) {
@@ -168,14 +186,14 @@ export class DashboardPage implements OnInit, OnDestroy {
       next: (response: IIRSConfiguration) => {
         Preferences.set({
           key: 'irsConfiguration',
-          value: JSON.stringify(response)
+          value: JSON.stringify(response),
         });
         console.log('IRS Configuration:', response);
       },
       error: (error) => {
         console.error('Error al obtener la configuración IRS:', error);
-      }
-    })
+      },
+    });
   }
 
   /**
@@ -190,7 +208,7 @@ export class DashboardPage implements OnInit, OnDestroy {
         },
         error: (err) => {
           console.error('Error cargando perfil en dashboard:', err);
-        }
+        },
       });
     }
   }
@@ -203,7 +221,7 @@ export class DashboardPage implements OnInit, OnDestroy {
   // }
 
   ngOnDestroy(): void {
-    this.subscriptions.forEach(sub => sub.unsubscribe());
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
     if (this.chart) {
       this.chart.destroy();
     }
@@ -212,21 +230,23 @@ export class DashboardPage implements OnInit, OnDestroy {
   private setupSubscriptions(): void {
     // Suscribirse al usuario actual
     this.subscriptions.push(
-      this.authService.currentCustomer$.subscribe((customer: ICustomerProfile | null) => {
-        this.user = customer;
-      })
+      this.authService.currentCustomer$.subscribe(
+        (customer: ICustomerProfile | null) => {
+          this.user = customer;
+        }
+      )
     );
 
     // Suscribirse al estado del tracking
     this.subscriptions.push(
-      this.trackingService.trackingState$.subscribe(state => {
+      this.trackingService.trackingState$.subscribe((state) => {
         this.isTrackingActive = state.isTracking;
       })
     );
 
     // Suscribirse a las estadísticas
     this.subscriptions.push(
-      this.tripService.statistics$.subscribe(stats => {
+      this.tripService.statistics$.subscribe((stats) => {
         this.statistics = stats;
       })
     );
@@ -254,30 +274,33 @@ export class DashboardPage implements OnInit, OnDestroy {
       this.vehicleService.getProfileVehicle(data).subscribe({
         next: (vehicle) => {
           if (vehicle && vehicle.id) {
-
-
           }
           const tripProfileData: TripProfileData = {
             customerId: data.customerId,
-            companyId: data.companyId
+            companyId: data.companyId,
           };
 
           this.getStaticSevenDaysMileage(tripProfileData);
 
-          console.log('Cargando estadísticas de millas para los últimos 7 días con:', tripProfileData);
+          console.log(
+            'Cargando estadísticas de millas para los últimos 7 días con:',
+            tripProfileData
+          );
           console.log('Vehículo perfil cargado:', vehicle);
         },
         error: (error) => {
           console.error('Error cargando vehículo perfil:', error);
-        }
+        },
       });
 
-      await this.tripService.getTrips({
-        page: 1,
-        limit: 10,
-        sortBy: 'date',
-        sortOrder: 'desc'
-      }).toPromise();
+      await this.tripService
+        .getTrips({
+          page: 1,
+          limit: 10,
+          sortBy: 'date',
+          sortOrder: 'desc',
+        })
+        .toPromise();
 
       // Cargar estadísticas
       await this.tripService.getStatistics().toPromise();
@@ -289,7 +312,6 @@ export class DashboardPage implements OnInit, OnDestroy {
       if (this.chart) {
         this.updateChart();
       }
-
     } catch (error) {
       console.error('Error cargando datos:', error);
     } finally {
@@ -301,14 +323,16 @@ export class DashboardPage implements OnInit, OnDestroy {
     this.tripService.getMileSevenDays(tripProfileData).subscribe({
       next: (dailyData: DailyMileage[]) => {
         this.dailyMileage = dailyData;
-        console.log('Datos de millas diarias para los últimos 7 días:', this.dailyMileage);
+        console.log(
+          'Datos de millas diarias para los últimos 7 días:',
+          this.dailyMileage
+        );
         this.updateChart();
       },
       error: (error) => {
         console.error('Error cargando estadísticas:', error);
-      }
+      },
     });
-
   }
 
   async handleRefresh(event: any): Promise<void> {
@@ -325,29 +349,31 @@ export class DashboardPage implements OnInit, OnDestroy {
     const ctx = this.chartCanvas.nativeElement.getContext('2d');
     if (!ctx) return;
 
-    const labels = this.dailyMileage.map(d => this.formatDayLabel(d.day));
-    const data = this.dailyMileage.map(d => d.miles);
+    const labels = this.dailyMileage.map((d) => this.formatDayLabel(d.day));
+    const data = this.dailyMileage.map((d) => d.miles);
 
     this.chart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels,
-        datasets: [{
-          label: 'Millas',
-          data,
-          backgroundColor: 'rgba(49, 130, 206, 0.8)',
-          borderColor: '#3182ce',
-          borderWidth: 1,
-          borderRadius: 8,
-          barThickness: 24
-        }]
+        datasets: [
+          {
+            label: 'Millas',
+            data,
+            backgroundColor: 'rgba(49, 130, 206, 0.8)',
+            borderColor: '#3182ce',
+            borderWidth: 1,
+            borderRadius: 8,
+            barThickness: 24,
+          },
+        ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
           legend: {
-            display: false
+            display: false,
           },
           tooltip: {
             backgroundColor: '#1a365d',
@@ -361,36 +387,36 @@ export class DashboardPage implements OnInit, OnDestroy {
                   return `${y.toFixed(1)} millas`;
                 }
                 return '';
-              }
-            }
-          }
+              },
+            },
+          },
         },
         scales: {
           x: {
             grid: {
-              display: false
+              display: false,
             },
             ticks: {
               color: '#718096',
               font: {
-                size: 11
-              }
-            }
+                size: 11,
+              },
+            },
           },
           y: {
             beginAtZero: true,
             grid: {
-              color: '#edf2f7'
+              color: '#edf2f7',
             },
             ticks: {
               color: '#718096',
               font: {
-                size: 11
-              }
-            }
-          }
-        }
-      }
+                size: 11,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -400,8 +426,8 @@ export class DashboardPage implements OnInit, OnDestroy {
       return;
     }
 
-    const labels = this.dailyMileage.map(d => this.formatDayLabel(d.day));
-    const data = this.dailyMileage.map(d => d.miles);
+    const labels = this.dailyMileage.map((d) => this.formatDayLabel(d.day));
+    const data = this.dailyMileage.map((d) => d.miles);
 
     this.chart.data.labels = labels;
     this.chart.data.datasets[0].data = data;
@@ -419,9 +445,17 @@ export class DashboardPage implements OnInit, OnDestroy {
     return 'Buenas noches';
   }
 
-  getMonthlyDeduction(): number {
+  async getMonthlyDeduction(): Promise<number> {
     const miles = this.statistics?.milesThisMonth || 0;
-    return miles * environment.app.mileageRate;
+    const { value } = await Preferences.get({ key: 'irsConfiguration' });
+
+    const irsConfiguration: IIRSConfiguration = value
+      ? JSON.parse(value)
+      : null;
+    if (!irsConfiguration) {
+      return 0;
+    }
+    return miles * Number(irsConfiguration.mileageRate);
   }
 
   formatDate(dateStr: string): string {
@@ -429,7 +463,7 @@ export class DashboardPage implements OnInit, OnDestroy {
     return date.toLocaleDateString('es-ES', {
       weekday: 'short',
       day: 'numeric',
-      month: 'short'
+      month: 'short',
     });
   }
 
@@ -458,21 +492,21 @@ export class DashboardPage implements OnInit, OnDestroy {
 
   getPurposeLabel(purpose: string): string {
     const labels: Record<string, string> = {
-      'business': 'Negocio',
-      'medical': 'Médico',
-      'moving': 'Mudanza',
-      'personal': 'Personal'
+      business: 'Negocio',
+      medical: 'Médico',
+      moving: 'Mudanza',
+      personal: 'Personal',
     };
     return labels[purpose] || purpose;
   }
 
   getPurposeColor(purpose: string): string {
     const colors: Record<string, string> = {
-      'business': 'primary',
-      'medical': 'danger',
-      'charity': 'success',
-      'moving': 'warning',
-      'personal': 'medium'
+      business: 'primary',
+      medical: 'danger',
+      charity: 'success',
+      moving: 'warning',
+      personal: 'medium',
     };
     return colors[purpose] || 'medium';
   }
