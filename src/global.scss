@@ -483,6 +483,27 @@ ion-content {
 }
 
 /* ==============================================
+ * CONFIGURACIÓN DE ITEMS Y LISTAS (MODO CLARO)
+ * ============================================== */
+ion-item {
+  --border-color: #e2e8f0;
+  --inner-border-width: 0;
+  --border-width: 0 0 1px 0;
+  --background: #ffffff;
+  --color: #1e293b;
+}
+
+ion-list {
+  --background: transparent;
+}
+
+/* Remove lines when lines="none" */
+ion-list[lines="none"] ion-item {
+  --border-width: 0;
+  --inner-border-width: 0;
+}
+
+/* ==============================================
  * MODO OSCURO
  * ============================================== */
 body.dark {
@@ -516,10 +537,55 @@ body.dark {
   ion-item {
     --background: #1e1e1e;
     --color: #ffffff;
+    --border-color: #333333;
   }
 
   ion-list {
     --background: #1e1e1e;
+  }
+
+  /* Selects and Popovers */
+  ion-select {
+    color: #ffffff;
+  }
+
+  ion-popover {
+    --background: #1e1e1e;
+    --color: #ffffff;
+
+    ion-list {
+      background: #1e1e1e;
+    }
+
+    ion-item {
+      --background: #1e1e1e;
+      --color: #ffffff;
+
+      &:hover {
+        --background: #2d3748;
+      }
+    }
+
+    ion-radio {
+      --color: #ffffff;
+      --color-checked: #60a5fa;
+    }
+  }
+
+  /* Action Sheets */
+  ion-action-sheet {
+    --background: #1e1e1e;
+    --color: #ffffff;
+
+    .action-sheet-button {
+      color: #ffffff;
+    }
+  }
+
+  /* Modals */
+  ion-modal {
+    --background: #1e1e1e;
+    --color: #ffffff;
   }
 
   .settings-content {

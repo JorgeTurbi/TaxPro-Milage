@@ -100,3 +100,51 @@
         font-size: 24px;
     }
 }
+
+// ===========================================
+// DARK MODE
+// ===========================================
+body.dark {
+    .settings-content {
+        --background: #121212;
+    }
+
+    .settings-title {
+        color: #ffffff;
+    }
+
+    .section-title {
+        color: #b0b0b0;
+    }
+
+    .new-badge {
+        background: #ff6b81;
+    }
+
+    .settings-list {
+        background: #1e1e1e;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .settings-item {
+        --background: #1e1e1e;
+        --background-hover: #2d2d2d;
+        --background-activated: #333333;
+
+        &::part(native) {
+            border-bottom: 1px solid #333333;
+        }
+
+        ion-label {
+            color: #ffffff;
+        }
+    }
+
+    .item-icon {
+        color: #ffffff;
+    }
+
+    .arrow-icon {
+        color: #666666;
+    }
+}

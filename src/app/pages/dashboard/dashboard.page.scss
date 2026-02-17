@@ -1,4 +1,11 @@
 /* ==============================================
+   DASHBOARD CONTENT BACKGROUND
+   ============================================== */
+ion-content {
+  --background: #ffffff;
+}
+
+/* ==============================================
    NEW LIGHT DASHBOARD HEADER
    ============================================== */
 .dashboard-header-light {
@@ -745,4 +752,365 @@ ion-chip {
 
 .pulse-dot {
   animation: pulse 2s ease-in-out infinite;
+}
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
+body.dark {
+
+  /* Dashboard Content Background */
+  ion-content {
+    --background: #121212;
+  }
+
+  /* Header */
+  .dashboard-header-light {
+    background: #1e293b;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  }
+
+  .greeting-text {
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .user-name-light {
+    color: #ffffff;
+  }
+
+  /* Budget Card */
+  .budget-card {
+    background: #1e1e1e;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .bill {
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 50%, #1e293b 100%);
+  }
+
+  .bill-symbol {
+    color: rgba(148, 163, 184, 0.6);
+  }
+
+  .budget-label {
+    color: #94a3b8;
+  }
+
+  .budget-value {
+    color: #ffffff;
+  }
+
+  .budget-per-mile {
+    color: #94a3b8;
+  }
+
+  .budget-bar-bg {
+    background: #2d3748;
+  }
+
+  .budget-bar-fill {
+    background: linear-gradient(90deg, #60a5fa 0%, #3b82f6 100%);
+  }
+
+  .budget-percentage {
+    color: #94a3b8;
+  }
+
+  /* Mini Stats */
+  .mini-stat-card {
+    background: #1e1e1e;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .mini-stat-value {
+    color: #ffffff;
+  }
+
+  .mini-stat-label {
+    color: #94a3b8;
+  }
+
+  .mini-stat-icon {
+    background: rgba(96, 165, 250, 0.15);
+
+    ion-icon {
+      color: #60a5fa;
+    }
+  }
+
+  /* Week Days */
+  .week-days span {
+    color: #94a3b8;
+  }
+
+  /* Chart Container */
+  .chart-container {
+    background: #1e1e1e;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .chart-title {
+    color: #ffffff;
+
+    ion-icon {
+      color: #60a5fa;
+    }
+  }
+
+  /* Bar Chart */
+  .bar-chart {
+    .chart-bar {
+      background: #2d3748;
+
+      &::after {
+        background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
+      }
+    }
+
+    .day-label {
+      color: #94a3b8;
+    }
+  }
+
+  /* Recent Trips Section */
+  .recent-trips-title {
+    color: #ffffff;
+  }
+
+  .view-all-link {
+    color: #60a5fa;
+  }
+
+  /* Trip Items */
+  .trip-item-card {
+    background: #1e1e1e;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .trip-info {
+    .trip-destination {
+      color: #ffffff;
+    }
+
+    .trip-meta {
+      color: #94a3b8;
+
+      ion-icon {
+        color: #94a3b8;
+      }
+    }
+  }
+
+  .trip-stats-right {
+    .trip-distance {
+      color: #ffffff;
+    }
+
+    .trip-deduction {
+      color: #60a5fa;
+    }
+  }
+
+  /* Empty State */
+  .empty-state {
+    background: #1e1e1e;
+
+    ion-icon {
+      color: #4a5568;
+    }
+
+    h3 {
+      color: #ffffff;
+    }
+
+    p {
+      color: #94a3b8;
+    }
+
+    small {
+      color: #6b7280;
+    }
+  }
+
+  .empty-trips {
+    ion-icon {
+      color: #4a5568;
+    }
+
+    p {
+      color: #94a3b8;
+    }
+  }
+
+  /* Yearly Stats */
+  .yearly-stats {
+    background: #1e1e1e;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .section-title {
+    color: #ffffff;
+
+    ion-icon {
+      color: #60a5fa;
+    }
+  }
+
+  .yearly-value {
+    color: #ffffff;
+  }
+
+  .yearly-label {
+    color: #94a3b8;
+  }
+
+  /* Trip Icon */
+  .trip-icon {
+    background: #2d3748;
+
+    ion-icon {
+      color: #60a5fa;
+    }
+  }
+
+  /* Budget Change */
+  .budget-change {
+    background: #2d3748;
+    color: #ffffff;
+
+    &.positive {
+      color: #ffffff;
+
+      ion-icon {
+        color: #34d399;
+      }
+    }
+  }
+
+  /* Chips */
+  ion-chip {
+    --background: #2d3748;
+    --color: #94a3b8;
+  }
+
+  /* Recent Trips Title */
+  .recent-trips-title {
+    h3 {
+      color: #ffffff;
+
+      ion-icon {
+        color: #60a5fa;
+      }
+    }
+
+    a {
+      color: #60a5fa;
+    }
+  }
+
+  /* Trip Item (list) */
+  .trip-item {
+    --background: #1e1e1e;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .trip-distance {
+    color: #ffffff;
+  }
+
+  .trip-date {
+    color: #94a3b8;
+  }
+
+  .trip-duration {
+    color: #6b7280;
+  }
+
+  /* Card Header Uber */
+  .card-header-uber {
+    h2 {
+      color: #ffffff;
+    }
+
+    .active-badge {
+      background: rgba(52, 211, 153, 0.2);
+      color: #34d399;
+    }
+
+    .tracking-stats-row .stat-item {
+      color: #94a3b8;
+
+      ion-icon {
+        color: #60a5fa;
+      }
+    }
+  }
+
+  /* Card Body Uber */
+  .card-body-uber {
+    .timeline-point {
+      .time-label {
+        color: #ffffff;
+      }
+
+      .address-label {
+        color: #94a3b8;
+      }
+    }
+
+    .map-visual {
+      background: #2d3748;
+    }
+  }
+
+  .uber-trip-card {
+    background: #1e1e1e;
+    border: 1px solid #333333;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .uber-header {
+    .uber-badge, .close-btn { color: #94a3b8; }
+    .uber-logo { color: #ffffff; }
+  }
+
+  .trip-route {
+    .route-point {
+      .point-label { color: #94a3b8; }
+      .point-address { color: #ffffff; }
+    }
+    .route-line { background: #4a5568; }
+  }
+
+  .trip-details-grid .detail-item {
+    .detail-label { color: #94a3b8; }
+    .detail-value { color: #ffffff; }
+  }
+
+  .uber-actions .action-btn {
+    background: #2d3748;
+    color: #ffffff;
+    &:hover { background: #374151; }
+    &.primary {
+      background: #60a5fa;
+      &:hover { background: #3b82f6; }
+    }
+  }
+
+  .map-container { background: #1a1a1a; }
+  .map-loading, .map-error {
+    background: rgba(30, 30, 30, 0.95);
+    color: #ffffff;
+    p { color: #94a3b8; }
+  }
+
+  .timeline-point {
+    background: #1e1e1e;
+    &::before { background: #60a5fa; }
+    .point-time, .point-address, .point-label { color: #ffffff; }
+    .point-time { color: #94a3b8; }
+  }
+
+  .timeline-line { background: #4a5568; }
+}
 }

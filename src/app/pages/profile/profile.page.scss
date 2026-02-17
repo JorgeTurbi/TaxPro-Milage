@@ -1,7 +1,17 @@
+/* ==============================================
+   PROFILE CONTENT BACKGROUND
+   ============================================== */
+ion-content {
+    --background: #ffffff;
+}
+
+/* ==============================================
+   PROFILE HEADER
+   ============================================== */
 .profile-header {
     text-align: center;
     padding: 24px 16px;
-    background: linear-gradient(135deg, var(--ion-color-primary) 0%, var(--ion-color-primary-shade) 100%);
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
     border-radius: 0 0 24px 24px;
     margin: -16px -16px 16px -16px;
     color: white;
@@ -30,7 +40,7 @@
     position: absolute;
     bottom: 0;
     right: 0;
-    background: var(--ion-color-secondary);
+    background: #3b82f6;
     border-radius: 50%;
     width: 32px;
     height: 32px;
@@ -57,38 +67,53 @@
     font-size: 0.9rem;
 }
 
+/* ==============================================
+   CARDS
+   ============================================== */
 ion-card {
     margin: 16px 0;
     border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
 }
 
-ion-card-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 1.1rem;
+ion-card-header {
+    ion-card-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1.1rem;
+        color: #1e293b;
+
+        ion-icon {
+            color: #64748b;
+        }
+    }
 }
 
-ion-card-title ion-icon {
-    color: var(--ion-color-primary);
+ion-card-content {
+    color: #475569;
 }
 
-/* Vehículos */
+/* ==============================================
+   VEHÍCULOS
+   ============================================== */
 .vehicle-card {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 12px;
-    background: var(--ion-color-light);
+    background: #f8fafc;
     border-radius: 12px;
     margin-bottom: 12px;
-    border: 2px solid transparent;
+    border: 1px solid #e2e8f0;
     flex-wrap: wrap;
 }
 
 .vehicle-card.default {
-    border-color: var(--ion-color-primary);
-    background: rgba(var(--ion-color-primary-rgb), 0.05);
+    border-color: #3b82f6;
+    background: #eff6ff;
 }
 
 .vehicle-photo {
@@ -96,7 +121,7 @@ ion-card-title ion-icon {
     height: 60px;
     min-width: 60px;
     border-radius: 12px;
-    background: var(--ion-color-medium-tint);
+    background: #e2e8f0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -113,7 +138,7 @@ ion-card-title ion-icon {
 
 .vehicle-photo>ion-icon {
     font-size: 28px;
-    color: var(--ion-color-medium);
+    color: #94a3b8;
 }
 
 .vehicle-photo .photo-edit {
@@ -138,12 +163,12 @@ ion-card-title ion-icon {
 .vehicle-plate {
     font-weight: 700;
     font-size: 1.1rem;
-    color: var(--ion-color-dark);
+    color: #1e293b;
 }
 
 .vehicle-details {
     font-size: 0.8rem;
-    color: var(--ion-color-medium);
+    color: #64748b;
 }
 
 .vehicle-mileage {
@@ -151,7 +176,7 @@ ion-card-title ion-icon {
     align-items: center;
     gap: 4px;
     font-size: 0.8rem;
-    color: var(--ion-color-primary);
+    color: #3b82f6;
     margin-top: 4px;
 }
 
@@ -174,29 +199,271 @@ ion-card-title ion-icon {
 .empty-vehicles {
     text-align: center;
     padding: 24px;
-    color: var(--ion-color-medium);
+    color: #64748b;
+    background: #f1f5f9;
+    border-radius: 12px;
 }
 
 .empty-vehicles ion-icon {
     font-size: 48px;
     margin-bottom: 8px;
+    color: #cbd5e0;
+}
+
+.empty-vehicles p {
+    color: #64748b;
+    margin: 8px 0;
 }
 
 .empty-vehicles .hint {
     font-size: 0.8rem;
     font-style: italic;
+    color: #94a3b8;
 }
 
 .logout-btn {
     margin: 24px 0;
 }
 
-ion-item h3 {
-    font-weight: 600;
-    color: var(--ion-color-dark) !important;
+/* ==============================================
+   ITEMS & LISTS
+   ============================================== */
+ion-list {
+    background: transparent;
 }
 
-ion-item p {
-    font-size: 0.8rem;
-    color: var(--ion-color-medium) !important;
+ion-item {
+    --background: #ffffff;
+    --color: #1e293b;
+    --border-color: #f1f5f9;
+
+    ion-label {
+        h3 {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        p {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+    }
+
+    ion-icon[slot="start"] {
+        color: #64748b;
+    }
+
+    ion-note {
+        color: #64748b;
+        font-size: 0.85rem;
+    }
+}
+
+/* ==============================================
+   BUTTONS
+   ============================================== */
+ion-button[fill="outline"] {
+    --border-color: #e2e8f0;
+    --color: #475569;
+}
+
+ion-button[fill="clear"] {
+    --color: #64748b;
+}
+
+/* ==============================================
+   DARK MODE
+   ============================================== */
+body.dark {
+
+    /* Profile Content Background */
+    ion-content {
+        --background: #121212;
+    }
+
+    /* Profile Header */
+    .profile-header {
+        background: linear-gradient(135deg, #2d3748 0%, #1e293b 100%);
+    }
+
+    .avatar-container {
+        .profile-avatar {
+            border-color: #4a5568;
+        }
+
+        .avatar-edit-badge {
+            background: #60a5fa;
+            border-color: #4a5568;
+        }
+    }
+
+    .user-name,
+    .user-email {
+        color: #ffffff;
+    }
+
+    /* Cards */
+    ion-card {
+        --background: #1e1e1e;
+        background: #1e1e1e;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        border-color: #2d3748;
+    }
+
+    ion-card-header {
+        ion-card-title {
+            color: #ffffff;
+
+            ion-icon {
+                color: #60a5fa;
+            }
+        }
+    }
+
+    ion-card-content {
+        color: #e2e8f0;
+    }
+
+    /* Vehicle Cards */
+    .vehicle-card {
+        background: #1e1e1e;
+        border-color: #333333;
+
+        &.default {
+            border-color: #60a5fa;
+            background: rgba(96, 165, 250, 0.1);
+        }
+    }
+
+    .vehicle-photo {
+        background: #2d3748;
+
+        >ion-icon {
+            color: #94a3b8;
+        }
+
+        .photo-edit {
+            background: rgba(96, 165, 250, 0.8);
+        }
+    }
+
+    .vehicle-plate {
+        color: #ffffff;
+    }
+
+    .vehicle-details {
+        color: #94a3b8;
+    }
+
+    .vehicle-mileage {
+        color: #60a5fa;
+    }
+
+    /* Empty Vehicles */
+    .empty-vehicles {
+        background: #1e1e1e;
+        color: #94a3b8;
+
+        ion-icon {
+            color: #4a5568;
+        }
+
+        p {
+            color: #94a3b8;
+        }
+
+        .hint {
+            color: #6b7280;
+        }
+    }
+
+    /* Lists */
+    ion-list {
+        background: transparent;
+    }
+
+    /* Items */
+    ion-item {
+        --background: #1e1e1e;
+        --color: #ffffff;
+        --border-color: #2d3748;
+
+        ion-label {
+            color: #ffffff;
+
+            h3 {
+                color: #ffffff;
+            }
+
+            p {
+                color: #94a3b8;
+            }
+        }
+
+        ion-note {
+            color: #94a3b8;
+        }
+
+        ion-icon[slot="start"] {
+            color: #60a5fa;
+        }
+    }
+
+    /* Buttons */
+    ion-button[fill="outline"] {
+        --border-color: #4a5568;
+        --color: #ffffff;
+        --background-hover: rgba(74, 85, 104, 0.1);
+    }
+
+    ion-button[fill="clear"] {
+        --color: #94a3b8;
+
+        &[color="danger"] {
+            --color: #f87171;
+        }
+    }
+
+    /* Logout button */
+    .logout-btn {
+        --border-color: #f87171;
+        --color: #f87171;
+    }
+
+    /* Chips */
+    ion-chip {
+        --background: rgba(96, 165, 250, 0.2);
+        --color: #60a5fa;
+        border: 1px solid #60a5fa;
+    }
+
+    /* Selects */
+    ion-select {
+        --placeholder-color: #94a3b8;
+        color: #ffffff;
+    }
+
+    /* Toggles */
+    ion-toggle {
+        --handle-background: #ffffff;
+        --handle-background-checked: #ffffff;
+        --background: #4a5568;
+        --background-checked: #60a5fa;
+    }
+
+    /* Vehicle Actions */
+    .vehicle-actions {
+        ion-button {
+            --color: #94a3b8;
+
+            &[color="danger"] {
+                --color: #f87171;
+            }
+        }
+
+        ion-chip[color="primary"] {
+            --background: rgba(96, 165, 250, 0.2);
+            --color: #60a5fa;
+        }
+    }
 }

@@ -315,6 +315,9 @@ export class TrackingPage implements OnInit, OnDestroy {
       // Crear el mapa
       this.map = new google.maps.Map(this.mapElement.nativeElement, mapOptions);
 
+      // Detect dark mode for marker colors
+      const isDarkMode = document.body.classList.contains('dark');
+
       // Crear marcador de posición actual
       this.currentPositionMarker = new google.maps.Marker({
         position: { lat: position.latitude, lng: position.longitude },
@@ -323,7 +326,7 @@ export class TrackingPage implements OnInit, OnDestroy {
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
           scale: 10,
-          fillColor: '#3182ce',
+          fillColor: isDarkMode ? '#60a5fa' : '#3182ce',
           fillOpacity: 1,
           strokeColor: '#ffffff',
           strokeWeight: 3
@@ -334,7 +337,7 @@ export class TrackingPage implements OnInit, OnDestroy {
       this.routePolyline = new google.maps.Polyline({
         path: [],
         geodesic: true,
-        strokeColor: '#1a365d',
+        strokeColor: isDarkMode ? '#60a5fa' : '#1a365d',
         strokeOpacity: 1.0,
         strokeWeight: 4
       });
@@ -374,17 +377,114 @@ export class TrackingPage implements OnInit, OnDestroy {
    * Estilos personalizados para el mapa (tema TaxPro)
    */
   private getMapStyles() {
-    return [
-      {
-        featureType: 'poi',
-        elementType: 'labels',
-        stylers: [{ visibility: 'off' }]
-      },
-      {
-        featureType: 'transit',
-        stylers: [{ visibility: 'off' }]
-      }
-    ];
+    // Detect if dark mode is enabled
+    const isDarkMode = document.body.classList.contains('dark');
+
+    if (isDarkMode) {
+      // Dark mode map styles
+      return [
+        { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
+        { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+        { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
+        {
+          featureType: 'administrative.locality',
+          elementType: 'labels.text.fill',
+          stylers: [{ color: '#d59563' }]
+        },
+        {
+          featureType: 'poi',
+          elementType: 'labels.text.fill',
+          stylers: [{ color: '#d59563' }]
+        },
+        {
+          featureType: 'poi',
+          elementType: 'labels',
+          stylers: [{ visibility: 'off' }]
+        },
+        {
+          featureType: 'poi.park',
+          elementType: 'geometry',
+          stylers: [{ color: '#263c3f' }]
+        },
+        {
+          featureType: 'poi.park',
+          elementType: 'labels.text.fill',
+          stylers: [{ color: '#6b9a76' }]
+        },
+        {
+          featureType: 'road',
+          elementType: 'geometry',
+          stylers: [{ color: '#38414e' }]
+        },
+        {
+          featureType: 'road',
+          elementType: 'geometry.stroke',
+          stylers: [{ color: '#212a37' }]
+        },
+        {
+          featureType: 'road',
+          elementType: 'labels.text.fill',
+          stylers: [{ color: '#9ca5b3' }]
+        },
+        {
+          featureType: 'road.highway',
+          elementType: 'geometry',
+          stylers: [{ color: '#746855' }]
+        },
+        {
+          featureType: 'road.highway',
+          elementType: 'geometry.stroke',
+          stylers: [{ color: '#1f2835' }]
+        },
+        {
+          featureType: 'road.highway',
+          elementType: 'labels.text.fill',
+          stylers: [{ color: '#f3d19c' }]
+        },
+        {
+          featureType: 'transit',
+          elementType: 'geometry',
+          stylers: [{ color: '#2f3948' }]
+        },
+        {
+          featureType: 'transit',
+          stylers: [{ visibility: 'off' }]
+        },
+        {
+          featureType: 'transit.station',
+          elementType: 'labels.text.fill',
+          stylers: [{ color: '#d59563' }]
+        },
+        {
+          featureType: 'water',
+          elementType: 'geometry',
+          stylers: [{ color: '#17263c' }]
+        },
+        {
+          featureType: 'water',
+          elementType: 'labels.text.fill',
+          stylers: [{ color: '#515c6d' }]
+        },
+        {
+          featureType: 'water',
+          elementType: 'labels.text.stroke',
+          stylers: [{ color: '#17263c' }]
+        }
+      ];
+    } else {
+      // Light mode map styles
+      return [
+        {
+          featureType: 'poi',
+          elementType: 'labels',
+          stylers: [{ visibility: 'off' }]
+        },
+        {
+          featureType: 'transit',
+          stylers: [{ visibility: 'off' }]
+        }
+      ];
+    }
   }
 
   /**

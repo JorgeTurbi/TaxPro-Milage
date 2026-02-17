@@ -189,3 +189,108 @@
 ion-spinner {
     --color: white;
 }
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
+body.dark {
+
+    /* Container */
+    .login-container {
+        background: #121212;
+    }
+
+    /* Logo and Text */
+    .login-logo-text {
+        .logo-icon {
+            filter: grayscale(100%) brightness(150%);
+        }
+
+        h2 {
+            color: #ffffff;
+        }
+    }
+
+    /* Title and Subtitle */
+    .login-title {
+        color: #ffffff;
+    }
+
+    .login-subtitle {
+        color: #b0b0b0;
+    }
+
+    /* Inputs */
+    .taxpro-input {
+        --background: #2d3748;
+        --border-color: #4a5568;
+        --color: #ffffff;
+        --placeholder-color: #94a3b8;
+        background: #2d3748;
+        border-color: #4a5568;
+        color: #ffffff;
+
+        input {
+            color: #ffffff !important;
+        }
+
+        ion-icon {
+            color: #94a3b8;
+        }
+    }
+
+    /* Error Elements */
+    .error-text {
+        color: #f87171;
+    }
+
+    .error-banner {
+        background: rgba(248, 113, 113, 0.2);
+        color: #f87171;
+        border: 1px solid #f87171;
+    }
+
+    /* Primary Button */
+    .btn-taxpro {
+        --background: linear-gradient(135deg, #60a5fa, #3b82f6);
+        --box-shadow: 0 4px 15px rgba(96, 165, 250, 0.4);
+    }
+
+    /* Separator */
+    .separator {
+
+        &::before,
+        &::after {
+            background: #4a5568;
+        }
+
+        span {
+            color: #94a3b8;
+        }
+    }
+
+    /* Biometric Button */
+    .biometric-btn {
+        background: #2d3748;
+        border-color: #4a5568;
+
+        &:hover,
+        &:active {
+            background: #374151;
+            border-color: #60a5fa;
+        }
+
+        ion-icon {
+            color: #60a5fa;
+        }
+
+        span {
+            color: #d1d5db;
+        }
+    }
+
+    /* Version Text */
+    .version-text {
+        color: #6b7280;
+    }
+}

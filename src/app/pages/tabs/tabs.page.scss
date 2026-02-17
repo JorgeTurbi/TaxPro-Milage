@@ -236,3 +236,56 @@ ion-tab-button[tab="tracking"].tab-selected i {
         padding: 0 2px;
     }
 }
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
+body.dark {
+    /* Glassmorphic background - dark version */
+    ion-tab-bar::before {
+        background: rgba(30, 30, 30, 0.95); /* Dark background with high opacity */
+        filter: drop-shadow(0 25px 45px rgba(0, 0, 0, 0.8)) drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
+    }
+
+    /* Tab button colors */
+    ion-tab-button {
+        --color: #94a3b8 !important;
+        --color-selected: #60a5fa !important; /* Lighter blue for dark mode */
+    }
+
+    /* Icons - inactive state */
+    ion-tab-button ion-icon,
+    ion-tab-button i {
+        color: #94a3b8;
+    }
+
+    /* Active state - adjust gradient for dark mode */
+    ion-tab-button.tab-selected ion-icon,
+    ion-tab-button.tab-selected i {
+        color: #ffffff !important;
+        background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%); /* Lighter gradient */
+        box-shadow: 0 4px 10px rgba(96, 165, 250, 0.5);
+    }
+
+    ion-tab-button.tab-selected ion-label {
+        color: #60a5fa !important; /* Lighter blue */
+    }
+
+    /* Tracking button (center) - dark mode */
+    ion-tab-button[tab="tracking"] ion-icon,
+    ion-tab-button[tab="tracking"] i {
+        background: #2d3748; /* Dark background */
+        border: 1px solid #4a5568; /* Darker border */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        color: #60a5fa; /* Lighter blue icon */
+    }
+
+    /* Active Tracking Button - dark mode */
+    ion-tab-button[tab="tracking"].tab-selected ion-icon,
+    ion-tab-button[tab="tracking"].tab-selected i {
+        background: #60a5fa !important; /* Lighter blue */
+        border-color: #60a5fa;
+        box-shadow: 0 6px 14px rgba(96, 165, 250, 0.5) !important;
+        color: white !important;
+    }
+}

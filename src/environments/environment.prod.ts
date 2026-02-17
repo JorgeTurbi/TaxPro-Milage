@@ -12,7 +12,7 @@ export const environment = {
   // CONFIGURACIÓN DE API - PRODUCCIÓN
   // ===========================================
 
-  apiUrl: 'http://localhost:5000/api',
+  apiUrl: 'https://devapi.taxprosuite.com/api',
 
   endpoints: {
     login: '/auth/client/login',
