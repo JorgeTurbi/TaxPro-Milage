@@ -8,7 +8,7 @@
 }
 
 .settings-container {
-    padding: 24px 16px;
+    padding: calc(var(--ion-safe-area-top, 0px) + 24px) 16px 24px 16px;
     max-width: 500px;
     margin: 0 auto;
 }

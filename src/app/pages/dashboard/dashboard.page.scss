@@ -12,7 +12,7 @@ ion-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 20px 20px 20px;
+  padding: calc(var(--ion-safe-area-top, 0px) + 24px) 20px 20px 20px;
   /* Slight padding adjust */
   background: #1e3a8a;
   /* Blue to Green gradient */
