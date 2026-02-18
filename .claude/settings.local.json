@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(npm run build:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npx ng build:*)",
+      "Bash(npx cap sync:*)",
+      "Bash(./gradlew assembleDebug:*)"
     ]
   }
 }

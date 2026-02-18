@@ -72,6 +72,8 @@ export class ProfilePage implements OnInit {
   drivingDetectionEnabled: boolean = true;
   defaultPurpose: string = 'business';
   biometricEnabled: boolean = false;
+  biometricAvailable: boolean = false;
+  biometricType: string = 'huella digital';
 
   mileageRate = environment.app.mileageRate;
   appVersion = environment.app.version;
@@ -88,6 +90,7 @@ export class ProfilePage implements OnInit {
 
   async ngOnInit() {
     await this.loadUserData();
+    await this.loadBiometricAvailability();
     await this.loadSettings();
     await this.loadVehicles();
   }
@@ -400,6 +403,16 @@ export class ProfilePage implements OnInit {
     await actionSheet.present();
   }
 
+  async loadBiometricAvailability() {
+    const biometryType = await this.authService.checkBiometricAvailability();
+    if (biometryType) {
+      this.biometricAvailable = true;
+      // Importar BiometryType para comparar
+      const { BiometryType } = await import('@capgo/capacitor-native-biometric');
+      this.biometricType = biometryType === BiometryType.FACE_ID ? 'Face ID' : 'huella digital';
+    }
+  }
+
   // ===========================================
   // CONFIGURACIÓN
   // ===========================================
@@ -432,15 +445,35 @@ export class ProfilePage implements OnInit {
   }
 
   async toggleBiometric() {
-    try {
-      // Usar el servicio de autenticación para manejar la biometría correctamente
-      await this.authService.setBiometricLoginEnabled(this.biometricEnabled);
-      await Preferences.set({ key: 'biometricEnabled', value: this.biometricEnabled.toString() });
-      this.showToast(this.biometricEnabled ? 'Login biométrico activado' : 'Login biométrico desactivado');
-    } catch (error) {
-      console.error('Error configurando biometría:', error);
-      this.biometricEnabled = !this.biometricEnabled; // Revertir cambio
-      this.showToast('Error al configurar login biométrico', 'danger');
+    if (this.biometricEnabled) {
+      // Activar: verificar identidad primero
+      try {
+        const { NativeBiometric } = await import('@capgo/capacitor-native-biometric');
+        await NativeBiometric.verifyIdentity({
+          reason: `Confirma tu ${this.biometricType} para activar el login rápido`,
+          title: 'Verificar identidad',
+          subtitle: `Usa tu ${this.biometricType}`,
+          description: 'Necesitamos verificar tu identidad para activar esta función'
+        });
+
+        // Verificación exitosa → guardar credenciales
+        await this.authService.setBiometricLoginEnabled(true);
+        this.showToast(`Login con ${this.biometricType} activado`);
+      } catch (error) {
+        console.error('Error activando biometría:', error);
+        this.biometricEnabled = false; // Revertir
+        this.showToast('No se pudo verificar tu identidad', 'danger');
+      }
+    } else {
+      // Desactivar: no requiere verificación
+      try {
+        await this.authService.setBiometricLoginEnabled(false);
+        this.showToast(`Login con ${this.biometricType} desactivado`);
+      } catch (error) {
+        console.error('Error desactivando biometría:', error);
+        this.biometricEnabled = true; // Revertir
+        this.showToast('Error al desactivar login biométrico', 'danger');
+      }
     }
   }
 

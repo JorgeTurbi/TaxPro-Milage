@@ -150,6 +150,7 @@
     </ion-card>
 
     <!-- Seguridad -->
+    @if (biometricAvailable) {
     <ion-card>
         <ion-card-header>
             <ion-card-title>
@@ -162,14 +163,15 @@
                 <ion-item>
                     <ion-icon name="finger-print-outline" slot="start" color="primary"></ion-icon>
                     <ion-label>
-                        <h3>Login Biométrico</h3>
-                        <p>Usar huella o Face ID</p>
+                        <h3>Login con {{ biometricType }}</h3>
+                        <p>Iniciar sesión rápido con {{ biometricType }}</p>
                     </ion-label>
                     <ion-toggle [(ngModel)]="biometricEnabled" (ionChange)="toggleBiometric()"></ion-toggle>
                 </ion-item>
             </ion-list>
         </ion-card-content>
     </ion-card>
+    }
 
     <!-- Información -->
     <ion-card>

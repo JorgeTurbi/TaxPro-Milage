@@ -191,6 +191,152 @@ ion-spinner {
 }
 
 /* ============================================================
+   COMPANY SELECTION
+   ============================================================ */
+.company-selection-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 24px;
+}
+
+.company-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.company-back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 2px;
+
+    ion-icon {
+        font-size: 1.2rem;
+        color: #1a365d;
+    }
+}
+
+.company-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1a365d;
+    margin: 0 0 4px 0;
+}
+
+.company-subtitle {
+    font-size: 0.8rem;
+    color: #718096;
+    margin: 0;
+}
+
+.company-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.company-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: #f7fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:active {
+        transform: scale(0.98);
+        border-color: #1a365d;
+        background: #edf2f7;
+    }
+
+    &.disabled {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+}
+
+.company-logo-wrapper {
+    flex-shrink: 0;
+}
+
+.company-logo {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.company-logo-placeholder {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #1a365d, #3182ce);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    span {
+        color: white;
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+}
+
+.company-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.company-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1a202c;
+    margin: 0 0 2px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.company-location {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.78rem;
+    color: #718096;
+    margin: 0 0 2px 0;
+
+    ion-icon {
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+}
+
+.company-user {
+    font-size: 0.75rem;
+    color: #a0aec0;
+    margin: 0;
+}
+
+.company-spinner {
+    --color: #1a365d;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+/* ============================================================
    DARK MODE
    ============================================================ */
 :host-context(body.dark) {
@@ -292,5 +438,53 @@ ion-spinner {
     /* Version Text */
     .version-text {
         color: #6b7280;
+    }
+
+    /* Company Selection */
+    .company-back-btn {
+        background: #2d3748;
+        border-color: #4a5568;
+
+        ion-icon {
+            color: #60a5fa;
+        }
+    }
+
+    .company-title {
+        color: #ffffff;
+    }
+
+    .company-subtitle {
+        color: #94a3b8;
+    }
+
+    .company-card {
+        background: #2d3748;
+        border-color: #4a5568;
+
+        &:active {
+            border-color: #60a5fa;
+            background: #374151;
+        }
+    }
+
+    .company-logo-placeholder {
+        background: linear-gradient(135deg, #60a5fa, #3b82f6);
+    }
+
+    .company-name {
+        color: #ffffff;
+    }
+
+    .company-location {
+        color: #94a3b8;
+    }
+
+    .company-user {
+        color: #6b7280;
+    }
+
+    .company-spinner {
+        --color: #60a5fa;
     }
 }

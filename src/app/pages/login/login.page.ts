@@ -32,6 +32,8 @@ import {
   alertCircleOutline
 } from 'ionicons/icons';
 import { CustomerAuthService, BiometryType } from '../../services/customer-auth.service';
+import { ICustomerCompanyOption } from '../../models/customer-login.interface';
+import { businessOutline, locationOutline, arrowBackOutline } from 'ionicons/icons';
 
 
 @Component({
@@ -67,6 +69,11 @@ export class LoginPage implements OnInit {
   biometryAvailable = false;
   biometryType: 'fingerprint' | 'faceId' | 'iris' | null = null;
 
+  // Selección de company
+  showCompanySelection = false;
+  availableCompanies: ICustomerCompanyOption[] = [];
+  private pendingCredentials: { email: string; password: string } | null = null;
+
   constructor() {
     // Registrar iconos
     addIcons({
@@ -74,7 +81,10 @@ export class LoginPage implements OnInit {
       logInOutline,
       mailOutline,
       lockClosedOutline,
-      alertCircleOutline
+      alertCircleOutline,
+      businessOutline,
+      locationOutline,
+      arrowBackOutline
     });
 
     // Inicializar formulario
@@ -150,38 +160,151 @@ export class LoginPage implements OnInit {
       password: this.loginForm.value.password
     };
 
+    this.performLogin(credentials);
+  }
+
+  /**
+   * Ejecuta el login y maneja las respuestas incluyendo 409 (sesión activa)
+   */
+  private performLogin(credentials: { email: string; password: string }): void {
     this.authService.login(credentials).subscribe({
       next: async (response) => {
-        console.log('Login exitoso:', response);
+        console.log('Login response:', response);
         if (response && response.success) {
-          // Verificar si hay biometría disponible
-          const biometryType = await this.authService.checkBiometricAvailability();
-          const biometricEnabled = await this.authService.isBiometricLoginEnabled();
-
-          if (biometryType) {
-            if (!biometricEnabled) {
-              // Primera vez: preguntar si quiere habilitarla
-              this.biometryType = biometryType === BiometryType.FACE_ID ? 'faceId' : 'fingerprint';
-              await this.askToEnableBiometrics();
-            } else {
-              // Ya está habilitada: actualizar tokens guardados con los nuevos
-              await this.authService.setBiometricLoginEnabled(true);
-              console.log('Tokens biométricos actualizados');
-            }
+          // Requiere selección de company
+          if (response.data?.requiresCompanySelection && response.data?.availableCompanies) {
+            this.availableCompanies = response.data.availableCompanies;
+            this.pendingCredentials = credentials;
+            this.showCompanySelection = true;
+            this.isLoading = false;
+            return;
           }
 
-          // Navegar al dashboard
-          await this.router.navigate(['/tabs/dashboard'], { replaceUrl: true });
+          // Login directo → completar flujo
+          await this.completeLoginFlow();
         } else {
           this.errorMessage = response?.message || 'Error al iniciar sesión';
         }
       },
       error: (error) => {
         console.error('Error en login:', error);
+
+        // 409 Conflict = sesión activa en otro dispositivo → cerrar y reintentar
+        if (error.status === 409) {
+          this.executeForceLoginFlow(credentials);
+          return;
+        }
+
         this.errorMessage = error?.error?.message || error?.message || 'Error al iniciar sesión';
         this.isLoading = false;
       },
       complete: () => {
+        this.isLoading = false;
+      }
+    });
+  }
+
+  /**
+   * Selecciona una company y completa el login
+   */
+  selectCompany(company: ICustomerCompanyOption): void {
+    if (!this.pendingCredentials || this.isLoading) return;
+
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    this.authService.loginWithCompany({
+      email: this.pendingCredentials.email,
+      password: this.pendingCredentials.password,
+      companyId: company.companyId
+    }).subscribe({
+      next: async (response) => {
+        if (response && response.success) {
+          this.showCompanySelection = false;
+          this.pendingCredentials = null;
+          await this.completeLoginFlow();
+        } else {
+          this.errorMessage = response?.message || 'Error al seleccionar compañía';
+          this.isLoading = false;
+        }
+      },
+      error: (error) => {
+        console.error('Error en login con company:', error);
+
+        // 409 en select-company → force logout y reintentar desde el inicio
+        if (error.status === 409 && this.pendingCredentials) {
+          this.showCompanySelection = false;
+          this.executeForceLoginFlow(this.pendingCredentials);
+          return;
+        }
+
+        this.errorMessage = error?.error?.message || error?.message || 'Error al seleccionar compañía';
+        this.isLoading = false;
+      }
+    });
+  }
+
+  /**
+   * Volver al formulario de login desde la selección de company
+   */
+  backToLogin(): void {
+    this.showCompanySelection = false;
+    this.availableCompanies = [];
+    this.pendingCredentials = null;
+    this.errorMessage = '';
+  }
+
+  /**
+   * Flujo post-login: biometría + navegación al dashboard
+   */
+  private async completeLoginFlow(): Promise<void> {
+    const biometryType = await this.authService.checkBiometricAvailability();
+    const biometricEnabled = await this.authService.isBiometricLoginEnabled();
+
+    if (biometryType) {
+      if (!biometricEnabled) {
+        this.biometryType = biometryType === BiometryType.FACE_ID ? 'faceId' : 'fingerprint';
+        await this.askToEnableBiometrics();
+      } else {
+        await this.authService.setBiometricLoginEnabled(true);
+      }
+    }
+
+    await this.router.navigate(['/tabs/dashboard'], { replaceUrl: true });
+  }
+
+  /**
+   * Genera las iniciales de un nombre de compañía para el placeholder
+   */
+  getCompanyInitials(name: string): string {
+    if (!name) return '?';
+    return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+  }
+
+  /**
+   * Ejecuta force logout y reintenta el login automáticamente
+   */
+  private executeForceLoginFlow(credentials: { email: string; password: string }): void {
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    this.authService.forceLogout({
+      email: credentials.email,
+      password: credentials.password,
+      reason: 'User requested new login from different device'
+    }).subscribe({
+      next: (response) => {
+        if (response.success) {
+          console.log('Force logout exitoso, reintentando login...');
+          this.performLogin(credentials);
+        } else {
+          this.errorMessage = 'No se pudo cerrar la sesión anterior. Intenta de nuevo.';
+          this.isLoading = false;
+        }
+      },
+      error: (error) => {
+        console.error('Error en force logout:', error);
+        this.errorMessage = error?.error?.message || 'Error al cerrar la sesión anterior.';
         this.isLoading = false;
       }
     });

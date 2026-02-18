@@ -1,4 +1,81 @@
 <ion-content [fullscreen]="true">
+
+    <!-- ======== PANTALLA DE SELECCIÓN DE COMPANY ======== -->
+    @if (showCompanySelection) {
+    <div class="login-container fade-in">
+
+        <!-- Logo -->
+        <div>
+            <img src="../../../assets/logo/taxpro-millage.png" alt="TaxPro Suite" />
+        </div>
+
+        <div class="company-selection-card">
+
+            <!-- Header con botón de volver -->
+            <div class="company-header">
+                <div class="company-back-btn" (click)="backToLogin()">
+                    <ion-icon name="arrow-back-outline"></ion-icon>
+                </div>
+                <div>
+                    <p class="company-title">Selecciona tu compañía</p>
+                    <p class="company-subtitle">Elige la compañía con la que deseas iniciar sesión</p>
+                </div>
+            </div>
+
+            <!-- Error -->
+            @if (errorMessage) {
+            <div class="error-banner">
+                <ion-icon name="alert-circle-outline"></ion-icon>
+                <span>{{ errorMessage }}</span>
+            </div>
+            }
+
+            <!-- Lista de compañías -->
+            <div class="company-list">
+                @for (company of availableCompanies; track company.companyId) {
+                <div class="company-card" (click)="selectCompany(company)" [class.disabled]="isLoading">
+
+                    <!-- Logo o placeholder -->
+                    <div class="company-logo-wrapper">
+                        @if (company.companyLogo) {
+                        <img [src]="company.companyLogo" [alt]="company.companyName" class="company-logo" />
+                        } @else {
+                        <div class="company-logo-placeholder">
+                            <span>{{ getCompanyInitials(company.companyName) }}</span>
+                        </div>
+                        }
+                    </div>
+
+                    <!-- Info -->
+                    <div class="company-info">
+                        <p class="company-name">{{ company.companyName }}</p>
+                        @if (company.companyCity || company.companyState) {
+                        <p class="company-location">
+                            <ion-icon name="location-outline"></ion-icon>
+                            {{ company.companyCity }}@if (company.companyCity && company.companyState) {, }{{ company.companyState }}
+                        </p>
+                        }
+                        @if (company.displayName) {
+                        <p class="company-user">{{ company.displayName }}</p>
+                        }
+                    </div>
+
+                    <!-- Loading indicator por card -->
+                    @if (isLoading) {
+                    <ion-spinner name="crescent" class="company-spinner"></ion-spinner>
+                    }
+                </div>
+                }
+            </div>
+
+        </div>
+
+        <p class="version-text">v1.0.0</p>
+    </div>
+    }
+
+    <!-- ======== PANTALLA DE LOGIN ======== -->
+    @else {
     <div class="login-container">
 
         <!-- Logo de TaxPro Suite -->
@@ -91,4 +168,6 @@
         <p class="version-text">v1.0.0</p>
 
     </div>
+    }
+
 </ion-content>

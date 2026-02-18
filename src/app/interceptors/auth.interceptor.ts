@@ -35,8 +35,8 @@ export const authInterceptor: HttpInterceptorFn = (
     return next(req);
   }
 
-  // No interceptar la petición de login
-  if (req.url.includes(environment.endpoints.login)) {
+  // No interceptar la petición de login ni force-logout
+  if (req.url.includes(environment.endpoints.login) || req.url.includes('/auth/client/force-logout')) {
     return next(req);
   }
 
