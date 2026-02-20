@@ -412,6 +412,10 @@ ion-content {
 
 .recent-trips-section {
   margin: 0 16px 24px;
+
+  ion-list {
+    background: transparent;
+  }
 }
 
 .recent-trips-title {
@@ -883,7 +887,7 @@ ion-chip {
 
   /* Trip Items */
   .trip-item-card {
-    background: #1e1e1e;
+    --background: #1e1e1e;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
@@ -1008,10 +1012,23 @@ ion-chip {
     }
   }
 
-  /* Trip Item (list) */
+  /* ===== FIX: Remove dark background from ion-list ===== */
+  .recent-trips-section ion-list {
+    background: transparent !important;
+    --ion-background-color: transparent;
+  }
+
+  /* Trip Item (list) - dark card style */
   .trip-item {
-    --background: transparent;
-    box-shadow: none;
+    --background: #1e1e1e !important;
+    --border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+    ion-label {
+      h2, p {
+        color: inherit;
+      }
+    }
   }
 
   .trip-distance {
@@ -1070,46 +1087,93 @@ ion-chip {
   }
 
   .uber-header {
-    .uber-badge, .close-btn { color: #94a3b8; }
-    .uber-logo { color: #ffffff; }
+
+    .uber-badge,
+    .close-btn {
+      color: #94a3b8;
+    }
+
+    .uber-logo {
+      color: #ffffff;
+    }
   }
 
   .trip-route {
     .route-point {
-      .point-label { color: #94a3b8; }
-      .point-address { color: #ffffff; }
+      .point-label {
+        color: #94a3b8;
+      }
+
+      .point-address {
+        color: #ffffff;
+      }
     }
-    .route-line { background: #4a5568; }
+
+    .route-line {
+      background: #4a5568;
+    }
   }
 
   .trip-details-grid .detail-item {
-    .detail-label { color: #94a3b8; }
-    .detail-value { color: #ffffff; }
+    .detail-label {
+      color: #94a3b8;
+    }
+
+    .detail-value {
+      color: #ffffff;
+    }
   }
 
   .uber-actions .action-btn {
     background: #2d3748;
     color: #ffffff;
-    &:hover { background: #374151; }
+
+    &:hover {
+      background: #374151;
+    }
+
     &.primary {
       background: #60a5fa;
-      &:hover { background: #3b82f6; }
+
+      &:hover {
+        background: #3b82f6;
+      }
     }
   }
 
-  .map-container { background: #1a1a1a; }
-  .map-loading, .map-error {
+  .map-container {
+    background: #1a1a1a;
+  }
+
+  .map-loading,
+  .map-error {
     background: rgba(30, 30, 30, 0.95);
     color: #ffffff;
-    p { color: #94a3b8; }
+
+    p {
+      color: #94a3b8;
+    }
   }
 
   .timeline-point {
-    background: #1e1e1e;
-    &::before { background: #60a5fa; }
-    .point-time, .point-address, .point-label { color: #ffffff; }
-    .point-time { color: #94a3b8; }
+    background: transparent;
+
+    &::before {
+      background: #60a5fa;
+    }
+
+    .point-time,
+    .point-address,
+    .point-label {
+      color: #ffffff;
+    }
+
+    .point-time {
+      color: #94a3b8;
+    }
   }
 
-  .timeline-line { background: #4a5568; }
+  .timeline-line {
+    background: #4a5568;
+  }
 }

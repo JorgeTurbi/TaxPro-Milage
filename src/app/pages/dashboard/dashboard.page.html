@@ -48,48 +48,6 @@
           <span>{{ monthlyDeduction | currency:'USD':'symbol':'1.0-0' }}</span>
         </div>
       </div>
-
-      <div class="budget-chart-area">
-        <div class="chart-tooltip">
-          <span>$750</span>
-        </div>
-        <svg class="area-chart-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" style="stop-color: #3b82f6; stop-opacity: 0.6" />
-              <stop offset="100%" style="stop-color: #3b82f6; stop-opacity: 0.1" />
-            </linearGradient>
-          </defs>
-
-          <path class="chart-area"
-            d="M0,80 C20,85 40,70 60,75 C80,80 100,60 120,55 C140,50 160,35 180,30 C200,25 220,40 240,45 C260,50 280,55 300,50 L300,100 L0,100 Z"
-            fill="url(#areaGradient)" />
-
-          <path class="chart-line"
-            d="M0,80 C20,85 40,70 60,75 C80,80 100,60 120,55 C140,50 160,35 180,30 C200,25 220,40 240,45 C260,50 280,55 300,50"
-            fill="none" stroke="#3b82f6" stroke-width="2.5" />
-
-          <circle cx="180" cy="30" r="5" fill="#3b82f6" stroke="white" stroke-width="2" />
-        </svg>
-
-        <div class="chart-sparkles">
-          <span class="sparkle"></span>
-          <span class="sparkle"></span>
-          <span class="sparkle"></span>
-          <span class="sparkle"></span>
-          <span class="sparkle"></span>
-        </div>
-      </div>
-
-      <div class="week-days">
-        <span>Sun</span>
-        <span>Mon</span>
-        <span>Tue</span>
-        <span>Wed</span>
-        <span>Thu</span>
-        <span>Fri</span>
-        <span>Sat</span>
-      </div>
     </div>
   </div>
 

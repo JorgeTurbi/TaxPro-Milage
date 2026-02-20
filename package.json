@@ -11,7 +11,8 @@
     "test": "ng test",
     "lint": "ng lint",
     "generate-icons-android": "npx capacitor-assets generate  --android",
-    "generate-icons-ios": "npx capacitor-assets generate  --ios"
+    "generate-icons-ios": "npx capacitor-assets generate  --ios",
+    "run-android": "ionic capacitor run android --target Medium_Phone_API_36.1"
   },
   "private": true,
   "dependencies": {
